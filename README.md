@@ -1,1 +1,3 @@
-# CA_GRN2
+# Cellular automata GRNs
+
+Fresh start post first submission.
