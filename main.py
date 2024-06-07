@@ -21,7 +21,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   #Make seeds, 1024 is one-hot
   seeds=[]
   for seed_int in seed_ints:
-    binary_string = bin(seed_int)[2:]
+    binary_string = bin(int(seed_int))[2:]
     binary_list = [int(digit) for digit in binary_string]
     start_pattern = np.array(binary_list)
     start_pattern=np.pad(start_pattern, (args.num_cells-len(start_pattern),0), 'constant', constant_values=(0))
@@ -40,7 +40,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   targets=[]
   seeds_ints=[]
   for idx, seed in enumerate(seeds):
-    targets.append(helper.rule2targets_wrapped_wstart(rules[idx], L=dev_steps+1, N=num_cells, start_pattern=seed))
+    targets.append(helper.rule2targets_wrapped_wstart(int(rules[idx]), L=dev_steps+1, N=num_cells, start_pattern=seed))
     binary_string = ''.join(seed.astype(str))
     seeds_ints.append(int(binary_string, 2))
   seeds_id='-'.join([str(number) for number in seeds_ints]) #id of start pattern for each season
@@ -53,8 +53,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   best_grns = np.zeros((save_freq, grn_size+2, grn_size))
   all_fits_hist = np.zeros((save_freq, 2, pop_size))
 
-  seededness="env_seeded"
-  filename = f"{folder}/stats_{seededness}_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
+  filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
 
   #Defining variables
   selection_size=int(pop_size*selection_prop)
@@ -131,10 +130,6 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   with open(filename+"_avefits.txt", 'w') as f:
     np.savetxt(f, ave_fits, newline=" ")
 
-  targs=np.array(targets).reshape(2,(dev_steps+1)*num_cells)
-  with open(filename+"_targets.txt", 'w') as f:
-    np.savetxt(f, targs, newline=" ")
-
   return max_fit
 
 if __name__ == "__main__":
@@ -160,6 +155,7 @@ if __name__ == "__main__":
 
   #69904,149796
   #1024
+  #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
   folder_name = "results_testing_CA_GRN2"
@@ -169,7 +165,7 @@ if __name__ == "__main__":
   args.num_cells = args.dev_steps
 
   #Make sure that user provided a rule and a seed for each alternative environment
-  assert len(args.rules) == len(args.seed_ints)
+  assert len(args.rules) == len(args.seed_ints), f"Num rules {len(args.rules)} != num seeds {len(args.seed_ints)}"
 
   print("running code", flush=True)
   score=evolutionary_algorithm(**vars(args))

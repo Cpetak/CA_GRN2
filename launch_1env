@@ -24,11 +24,10 @@ cd ${SLURM_SUBMIT_DIR}
 # Executable section: echoing some Slurm data
 echo "Starting sbatch script myscript.sh at:`date`"
 
-cd /users/c/p/cpetak/CA_GRN
+cd /users/c/p/cpetak/CA_GRN2
 
 #conda activate ca_grn
 echo "rule: $1"
-echo "seededness: $2"
-echo "seed: $3"
+echo "seed: $2"
 
-python vari_env_new.py --job_array_id ${SLURM_ARRAY_TASK_ID} --seededness $2 --residual 0 --season_len 100000 --rule_combo 0 --mut_size 0.5 --pop_size 1000 --dev_steps 22 --num_generations 1000 --selection_prop 0.1  --mut_rate 0.1 --rule $1 --seedn1 $3 --seedn2 $3 --grn_size 22
+python main.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $1 --seed_ints $2
