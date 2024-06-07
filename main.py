@@ -140,25 +140,26 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=100, help="Population size")
-  parser.add_argument('--grn_size', type=int, default=12, help="GRN size") 
+  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
+  parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
 
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
-  parser.add_argument('--mut_size', type=float, default=1.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=10, help="Number of generations")
-  parser.add_argument('--season_len', type=int, default=5, help="season length")
+  parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
+  parser.add_argument('--num_generations', type=int, default=10000, help="Number of generations")
+  parser.add_argument('--season_len', type=int, default=300, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[1024,1024], help='List of seeds in base 10')
-  parser.add_argument('--rules', nargs='+', default=[102,94], help='List of rules')
+  parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
+  parser.add_argument('--rules', nargs='+', default=[102,102], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
 
   args = parser.parse_args()
 
   #69904,149796
+  #1024
 
   #Writing to file
   folder_name = "results_testing_CA_GRN2"
