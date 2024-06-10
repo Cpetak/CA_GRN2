@@ -158,7 +158,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_CA_GRN2"
+  folder_name = "results_testing_launcher"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
