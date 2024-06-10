@@ -50,8 +50,8 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   max_fits = []
   ave_fits = []
   save_freq=int(num_generations/5)
-  best_grns = np.zeros((save_freq, grn_size+2, grn_size))
-  all_fits_hist = np.zeros((save_freq, 2, pop_size))
+  #best_grns = np.zeros((save_freq, grn_size+2, grn_size))
+  #all_fits_hist = np.zeros((save_freq, 2, pop_size))
 
   filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
 
@@ -78,14 +78,14 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       temp_fitnesses=1-(temp_fitnesses/worst) #0-1 scaling
       fitnesses.append(temp_fitnesses)
 
-    all_fits_hist[gen % save_freq] = np.array(fitnesses)
+    #all_fits_hist[gen % save_freq] = np.array(fitnesses)
 
     #Selection
     perm = np.argsort(fitnesses[curr])[::-1]
 
     #Logging
-    best_grn = pop[perm[0]]
-    best_grns[gen % save_freq] = best_grn
+    #best_grn = pop[perm[0]]
+    #best_grns[gen % save_freq] = best_grn
     
     max_fit=fitnesses[curr].max().item()
     ave_fit=fitnesses[curr].mean().item()
@@ -114,7 +114,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     if gen % season_len == season_len - 1: # flip target
       curr = (curr + 1) % len(targets)
 
-    if gen % save_freq == save_freq - 1:
+    if False:#gen % save_freq == save_freq - 1:
       best_grns = best_grns.reshape(save_freq,grn_size*(grn_size+2))
       with open(filename+"_best_grn.txt", 'a') as f:
         np.savetxt(f, best_grns, newline=" ")
