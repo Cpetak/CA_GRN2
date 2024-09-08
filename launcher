@@ -11,7 +11,7 @@
 # Request memory
 #SBATCH --mem=40G
 # Run for five minutes
-#SBATCH --time=01:00:00
+#SBATCH --time=03:00:00
 # Name job
 #SBATCH --job-name=SbatchJob
 # Name output file
@@ -32,11 +32,11 @@ cd /users/c/p/cpetak/CA_GRN2
 
 if [ $1 == "one" ]; then
 
-  python main.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $2 --seed_ints $3 --num_generations 10
+  python main.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $2 --seed_ints $3 --num_generations 3000
 
 elif [ $1 == "two" ]; then
 
-  python main.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $2 $3 --seed_ints $4 $5 --num_generations 10
+  python main.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $2 $3 --seed_ints $4 $5 --num_generations 3000
 
 else
 

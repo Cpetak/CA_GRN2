@@ -1,4 +1,4 @@
-for rule in 0 1 2
+for rule in {101..200}
 do
   for seed in 4147842 1238860 2481300 69904 149796 1024
   do
