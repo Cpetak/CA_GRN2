@@ -16,25 +16,18 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 
   curr = 0
   worst= -num_cells*dev_steps
+  geneid = 1
   
   #Creating start expression pattern
-  #Make seeds, 1024 is one-hot
   seeds=[]
-  for seed_int in seed_ints:
-    binary_string = bin(int(seed_int))[2:]
-    binary_list = [int(digit) for digit in binary_string]
-    start_pattern = np.array(binary_list)
-    start_pattern=np.pad(start_pattern, (args.num_cells-len(start_pattern),0), 'constant', constant_values=(0))
-    seeds.append(start_pattern)
-
-  geneid = 1
   inputs=[]
-  for start_pattern in seeds:
-    start_gene_values = np.zeros((pop_size, int(num_cells * grn_size)))
-    start_gene_values[:,geneid::grn_size] = start_pattern
-    start_padded_gene_values = np.pad(start_gene_values, [(0,0),(1,1)], "wrap")
-    start_padded_gene_values = np.float64(start_padded_gene_values)
-    inputs.append(start_padded_gene_values)
+  for seed_int in seed_ints:
+    #Make seeds, 1024 is one-hot
+    start_pattern = helper.seedID2string(seed_int, num_cells)
+    seeds.append(start_pattern)
+    #Make starting expression for whole population
+    start_expression = helper.seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
+    inputs.append(start_expression)
 
   #Creating targets
   targets=[]
@@ -42,7 +35,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   for idx, seed in enumerate(seeds):
     targets.append(helper.rule2targets_wrapped_wstart(int(rules[idx]), L=dev_steps+1, N=num_cells, start_pattern=seed))
     binary_string = ''.join(seed.astype(str))
-    seeds_ints.append(int(binary_string, 2))
+    seeds_ints.append(int(binary_string, 2)) #for file naming
   seeds_id='-'.join([str(number) for number in seeds_ints]) #id of start pattern for each season
   rules_id='-'.join([str(number) for number in rules])
 

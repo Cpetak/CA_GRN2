@@ -3,6 +3,7 @@ from numpy.lib.stride_tricks import sliding_window_view
 from matplotlib.lines import Line2D
 from numba import njit, prange
 from pathlib import Path
+import seaborn as sns
 
 ALPHA = 10
 
@@ -23,6 +24,22 @@ def fitness_function_ca(phenos, targ):
   Returns 1 fitness value for each individual, np array of size pop_size
   """
   return -np.abs(phenos - targ).sum(axis=1).sum(axis=1)
+
+def seedID2string(seed_int, num_cells):
+  #takes an integer, turns it into a starting pattern
+  binary_string = bin(int(seed_int))[2:]
+  binary_list = [int(digit) for digit in binary_string]
+  start_pattern = np.array(binary_list)
+  start_pattern=np.pad(start_pattern, (num_cells-len(start_pattern),0), 'constant', constant_values=(0))
+  return start_pattern
+
+def seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid):
+  #takes a starting pattern and makes a population of starting gene expressions
+  start_gene_values = np.zeros((pop_size, int(num_cells * grn_size)))
+  start_gene_values[:,geneid::grn_size] = start_pattern
+  start_padded_gene_values = np.pad(start_gene_values, [(0,0),(1,1)], "wrap")
+  start_padded_gene_values = np.float64(start_padded_gene_values)
+  return start_padded_gene_values
 
 #DO THE MULTICELLULAR DEVELOPMENT
 @njit("f8[:](f8[:], f8[:,:], i8, i8)")
@@ -243,3 +260,93 @@ def show_effectors(states, targets, M, ax):
 
     ax.set_title("Effector genes")
 
+def imshow_ca(grid, ax):
+    rocket_cmap = sns.color_palette("rocket", as_cmap=True)
+    # im = ax.imshow(grid, cmap="magma")
+    im = ax.imshow(grid, cmap=rocket_cmap,interpolation="nearest")
+
+    # Minor ticks
+    ax.set_xticks(np.arange(-0.5, grid.shape[1], 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, grid.shape[0], 1), minor=True)
+
+    # And a corresponding grid
+    ax.grid(which="minor", alpha=0.3)
+    for tick in ax.xaxis.get_minor_ticks():
+        tick.tick1line.set_visible(False)
+        tick.tick2line.set_visible(False)
+        tick.label1.set_visible(False)
+        tick.label2.set_visible(False)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.tick1line.set_visible(False)
+        tick.tick2line.set_visible(False)
+        tick.label1.set_visible(False)
+        tick.label2.set_visible(False)
+    for tick in ax.yaxis.get_minor_ticks():
+        tick.tick1line.set_visible(False)
+        tick.tick2line.set_visible(False)
+        tick.label1.set_visible(False)
+        tick.label2.set_visible(False)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.tick1line.set_visible(False)
+        tick.tick2line.set_visible(False)
+        tick.label1.set_visible(False)
+        tick.label2.set_visible(False)
+
+    return im
+
+def plot_three_line(ax, rule, data1, data2, data3, season_len=300, legend=False):
+    #Plots the fitness over generations for 3 datasets (data1=static 1, data2=static 2, data3=variable)
+    
+    # Calculate mean and standard error for each list
+    mean1 = np.mean(data1, axis=0)
+    mean2 = np.mean(data2, axis=0)
+    mean3 = np.mean(data3, axis=0)
+    stderr1 = np.std(data1, axis=0) / np.sqrt(len(data1))
+    stderr2 = np.std(data2, axis=0) / np.sqrt(len(data2))
+    stderr3 = np.std(data3, axis=0) / np.sqrt(len(data3))
+
+    for j in range(0, len(mean1), season_len):
+        if j % (season_len * 2) == 0:
+            ax.axvline(j, linestyle="--", color="gray", alpha=0.3)
+        else:
+            ax.axvline(j, linestyle=":", color="gray", alpha=0.3)
+    
+    # Plot data
+    ax.plot(mean1, label='Static T1', color='blue')
+    ax.tick_params(right=True, labelright=False)
+    ax.plot(mean2, label='Static T2', color='orange')
+    ax.plot(mean3, label='Variable env', color='red')
+    
+    # Fill the area between the lines and the error bars
+    ax.fill_between(range(len(mean1)), mean1 - stderr1, mean1 + stderr1, color='blue', alpha=0.3)
+    ax.fill_between(range(len(mean2)), mean2 - stderr2, mean2 + stderr2, color='orange', alpha=0.3)
+    ax.fill_between(range(len(mean3)), mean3 - stderr3, mean3 + stderr3, color='red', alpha=0.3)
+    
+    ax.set_title("Rule "+str(rule))
+    #ax.grid(axis="y")
+    #ax.set_ylabel("Fitness")
+    #plt.savefig("rule_"+str(rule)+"_lines.png")
+    if legend:
+        ax.legend(fontsize=14)
+        height = 0.62
+        base = season_len/2
+        kwargs = {"ha":"center", "va":"center", "fontsize":12, "color":"gray"}
+        ax.text(base, height, "T1", **kwargs)
+        ax.text(base + season_len, height, "T2", **kwargs)
+        ax.text(base + season_len*2, height, "T1", **kwargs)
+        ax.text(base + season_len*3, height, "T2", **kwargs)
+
+def get_pop_TPF(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rule, seed_int):
+  start_pattern = seedID2string(seed_int, num_cells)
+  start_expression = seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
+   
+  target = rule2targets_wrapped_wstart(int(rule), L=dev_steps+1, N=num_cells, start_pattern=start_pattern)
+   
+  all_phenos = develop(start_expression, pop, dev_steps, pop_size, grn_size, num_cells)
+  phenos = all_phenos[:,:,1::grn_size]
+   
+  worst= -num_cells*dev_steps
+  prefitnesses = fitness_function_ca(phenos, target)
+  fitnesses=1-(prefitnesses/worst) #0-1 scaling
+
+  return target, phenos, fitnesses

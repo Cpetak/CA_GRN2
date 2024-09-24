@@ -1,2 +1,5 @@
 results*
 all_rules_1hot_static/
+*.png
+*.p
+*_best_grn.txt
