@@ -43,7 +43,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   max_fits = []
   ave_fits = []
   save_freq=int(num_generations/5)
-  #best_grns = np.zeros((save_freq, grn_size+2, grn_size))
+  best_grns = np.zeros((save_freq, grn_size+2, grn_size))
   #all_fits_hist = np.zeros((save_freq, 2, pop_size))
 
   filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
@@ -77,8 +77,8 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     perm = np.argsort(fitnesses[curr])[::-1]
 
     #Logging
-    #best_grn = pop[perm[0]]
-    #best_grns[gen % save_freq] = best_grn
+    best_grn = pop[perm[0]]
+    best_grns[gen % save_freq] = best_grn
     
     max_fit=fitnesses[curr].max().item()
     ave_fit=fitnesses[curr].mean().item()
@@ -107,15 +107,15 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     if gen % season_len == season_len - 1: # flip target
       curr = (curr + 1) % len(targets)
 
-    if False:#gen % save_freq == save_freq - 1:
+    if gen % save_freq == save_freq - 1:
       best_grns = best_grns.reshape(save_freq,grn_size*(grn_size+2))
       with open(filename+"_best_grn.txt", 'a') as f:
         np.savetxt(f, best_grns, newline=" ")
       best_grns = np.zeros((save_freq, grn_size+2, grn_size))
-      all_fits_hist = all_fits_hist.reshape(save_freq,2*pop_size)
-      with open(filename+"_both_fits.txt", 'a') as f:
-        np.savetxt(f, all_fits_hist, newline=" ")
-      all_fits_hist = np.zeros((save_freq, 2, pop_size))
+      #all_fits_hist = all_fits_hist.reshape(save_freq,2*pop_size)
+      #with open(filename+"_both_fits.txt", 'a') as f:
+        #np.savetxt(f, all_fits_hist, newline=" ")
+      #all_fits_hist = np.zeros((save_freq, 2, pop_size))
 
 
   with open(filename+"_maxfits.txt", 'w') as f:
@@ -129,18 +129,18 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
-  parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
+  parser.add_argument('--grn_size', type=int, default=10, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
 
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=10000, help="Number of generations")
+  parser.add_argument('--num_generations', type=int, default=1000, help="Number of generations")
   parser.add_argument('--season_len', type=int, default=300, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
-  parser.add_argument('--rules', nargs='+', default=[102,102], help='List of rules')
+  parser.add_argument('--seed_ints', nargs='+', default=[1024], help='List of seeds in base 10')
+  parser.add_argument('--rules', nargs='+', default=[30], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_launcher"
+  folder_name = "results_testing_10genes"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
