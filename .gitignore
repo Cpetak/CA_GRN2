@@ -3,3 +3,6 @@ all_rules_1hot_static/
 *.png
 *.p
 *_best_grn.txt
+500pop
+*_maxfits.txt
+final_results_all
