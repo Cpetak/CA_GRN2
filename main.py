@@ -129,7 +129,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
-  parser.add_argument('--grn_size', type=int, default=10, help="GRN size") 
+  parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_10genes"
+  folder_name = "results_testing_22genes"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 

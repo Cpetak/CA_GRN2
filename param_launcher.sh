@@ -1,6 +1,6 @@
-for rule in {101..200}
+for rule in 54
 do
-  for seed in 4147842 1238860 2481300 69904 149796 1024
+  for seed in 1024
   do
   sbatch launcher one $rule $seed
   sleep 0.1
