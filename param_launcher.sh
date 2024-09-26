@@ -1,4 +1,4 @@
-for rule in 54
+for rule in 22
 do
   for seed in 1024
   do
