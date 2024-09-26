@@ -109,7 +109,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     #if gen % save_freq == save_freq - 1:
     if gen in saveat:
       with open(filename+"_best_grn.txt", 'a') as f:
-        np.savetxt(f, best_grns, newline=" ")
+        np.savetxt(f, best_grn, newline=" ")
       with open(filename+"_both_fits.txt", 'a') as f:
         np.savetxt(f, np.array(fitnesses), newline=" ")
 
