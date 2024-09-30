@@ -42,9 +42,10 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   #Logging targets
   max_fits = []
   ave_fits = []
-  gensin=[10,100,290]
+  gensin=[10,100,290,590]
   swichesin=[3,10,15,25,32]
-  saveat=[s*300+g for s in swichesin for g in gensin]
+  #saveat=[s*600+g for s in swichesin for g in gensin]
+  saveat=[num_generations - 2]
   #save_freq=int(num_generations/5)
   
   filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
@@ -130,8 +131,8 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
-  parser.add_argument('--season_len', type=int, default=300, help="season length")
+  parser.add_argument('--num_generations', type=int, default=19799, help="Number of generations")
+  parser.add_argument('--season_len', type=int, default=600, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[1024], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30], help='List of rules')
@@ -145,7 +146,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_new_rules"
+  folder_name = "results_new_rules_one"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
