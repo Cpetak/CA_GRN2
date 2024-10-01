@@ -343,7 +343,7 @@ def get_pop_TPF(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rule, see
   target = rule2targets_wrapped_wstart(int(rule), L=dev_steps+1, N=num_cells, start_pattern=start_pattern)
    
   all_phenos = develop(start_expression, pop, dev_steps, pop_size, grn_size, num_cells)
-  phenos = all_phenos[:,:,1::grn_size]
+  phenos = all_phenos[:,:,geneid::grn_size]
    
   worst= -num_cells*dev_steps
   prefitnesses = fitness_function_ca(phenos, target)
