@@ -48,7 +48,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   saveat=[num_generations - 2]
   #save_freq=int(num_generations/5)
   
-  filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
+  filename = f"{folder}/stats_0_{rules_id}_{seeds_id}_{job_array_id}"
 
   #Defining variables
   selection_size=int(pop_size*selection_prop)
