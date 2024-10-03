@@ -96,7 +96,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     pop_abs = np.reshape(pop_abs, (pop_abs.shape[0],pop_abs.shape[1]*pop_abs.shape[2] ))
     pop_sum = pop_abs.sum(axis=1) * scaling * mylambda
 
-    fitnesses_to_use = fitnesses[curr] + pop_sum
+    fitnesses_to_use = fitnesses[curr] - pop_sum
 
     #Selection
     perm = np.argsort(fitnesses_to_use)[::-1]
@@ -172,7 +172,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_L1"
+  folder_name = "results_testing_L1_01_good"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 

@@ -6,3 +6,4 @@ all_rules_1hot_static/
 500pop
 *_maxfits.txt
 final_results_all
+Sbatch*

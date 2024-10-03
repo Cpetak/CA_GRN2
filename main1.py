@@ -173,7 +173,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_L1"
+  folder_name = "results_testing_L1_01"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
