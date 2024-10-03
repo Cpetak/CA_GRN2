@@ -5,7 +5,7 @@ import helper
 
 """#Evolutionary algorythm"""
 
-def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
+def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, mylambda, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
   rules_str=''.join(str(num) for num in rules)
@@ -88,9 +88,18 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       temp_fitnesses = helper.fitness_function_ca(p, target)
       temp_fitnesses=1-(temp_fitnesses/worst) #0-1 scaling
       fitnesses.append(temp_fitnesses)
+    
+    #L1 regularization 
+    scaling=0.001 #0.001 makes it into similar range as fitness
+    #mylambda = 0.5 #importance of regularization, 1 means that weight sizes are as important as fitness
+    pop_abs = np.abs(pop)
+    pop_abs = np.reshape(pop_abs, (pop_abs.shape[0],pop_abs.shape[1]*pop_abs.shape[2] ))
+    pop_sum = pop_abs.sum(axis=1) * scaling * mylambda
+
+    fitnesses_to_use = fitnesses[curr] + pop_sum
 
     #Selection
-    perm = np.argsort(fitnesses[curr])[::-1]
+    perm = np.argsort(fitnesses_to_use)[::-1]
 
     #Logging
     best_grn = pop[perm[0]]
@@ -147,7 +156,8 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=10, help="Number of generations") #19799
+  parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=300, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[1024], help='List of seeds in base 10')
@@ -162,7 +172,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_new_rules"
+  folder_name = "testing"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
