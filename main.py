@@ -8,6 +8,7 @@ import helper
 def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
+  np.random.seed(42)
   #Creating population
 
   #adding a value for each gene in the grn which will be added after matrix multiplication

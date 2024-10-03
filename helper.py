@@ -4,6 +4,7 @@ from matplotlib.lines import Line2D
 from numba import njit, prange
 from pathlib import Path
 import seaborn as sns
+import torch
 
 ALPHA = 10
 
@@ -128,6 +129,103 @@ def develop(
       history[i, t+1, :] = state[1:-1].copy()
   return history
 
+#Torch implementation
+
+def update_pop_torch(state, grns, NC, NG):
+    """
+    Receives:
+        - state of shape (POP, NCxNG)
+        - grns of shape (POP, NG+2, NG)
+
+    Updates the state applying each individual's grn
+    to windows that include one communication gene from
+    the immediate neighbors (see below for explanation)
+
+    Returns:
+        - new state od shape (POP, NCxNG)
+
+    e.g.
+
+    POP = 2 # ind1, ind2
+    NC = 3  # cell1 cell2
+    NG = 4  # g1, g2, g3, g4
+
+    state:
+           g1 g2 g3 g4   g1 g2 g3 g4
+           [1, 2, 3, 4]  [5, 6, 7, 8]   ...
+
+               cell1       cell2      cell3
+            ----------  ----------  ----------
+    ind1 [[ 1  2  3  4  5  6  7  8  9 10 11 12]
+    ind2  [13 14 15 16 17 18 19 20 21 22 23 24]]
+
+    padded w/ zeros:
+
+        [[ 0  1  2  3  4  5  6  7  8  9 10 11 12  0]
+         [ 0 13 14 15 16 17 18 19 20 21 22 23 24  0]]
+
+    windows:
+
+        [[[ 0  1  2  3  4  5]
+          [ 4  5  6  7  8  9]
+          [ 8  9 10 11 12  0]]
+
+         [[12  0  0 13 14 15]
+          [14 15 16 17 18 19]
+          [18 19 20 21 22 23]]]
+
+    assuming dtype is the size of a single entry in state
+
+    state.shape   = (POP, NC * NG)
+    state.strides = (NC * NG * dtype, dtype)
+
+    windows.shape   = (POP, NC, NG+2)
+    windows.strides = (NC * NG * dtype, NG * dtype, dtype)
+    """
+    device="cpu"
+    POP, _ = state.shape
+    #padded = np.pad(state, pad_width=[(0, 0), (1, 1)])
+    padded = state.copy()
+    view_shape = (POP, NC, NG + 2)
+    strides = [padded.strides[0], state.strides[0] // NC, state.strides[1]]
+    windows = np.lib.stride_tricks.as_strided(padded, shape=view_shape, strides=strides)
+    tgrns = torch.from_numpy(grns).to(device)
+    twins = torch.from_numpy(windows).to(device)
+    with torch.no_grad():
+        res = torch.matmul(twins, tgrns).cpu()
+        res = torch.clip(res, 0, 1).reshape(POP, NC * NG)
+        return res.cpu().numpy()
+    # new_state = np.clip(np.matmul(windows, grns), 0, 1)
+    # return new_state.reshape(POP, NC * NG)
+
+
+def develop_torch(
+    state,
+    grns,
+    iters,
+    pop_size,
+    grn_size,
+    num_cells,
+):
+    _, NCxNG = state.shape
+    history = np.zeros((iters+1, pop_size, NCxNG-2), dtype=np.float64)
+
+    # for i in prange(pop_size):
+    #     state = gene_values[i].copy()
+    #     grn = grns[i]
+    #     for t in range(iters):
+    #         state[1:-1] = update_with_grn(state, grn, num_cells, grn_size)
+    #         history[i, t, :] = state[1:-1].copy()
+
+    history[0] = state[:,1:-1].copy()
+    for t in range(iters):
+        print(state.shape)
+        state = update_pop_torch(state, grns, num_cells, grn_size)
+        print(state.shape)
+        history[t+1] = state.copy()
+
+    return history.transpose(1, 0, 2)
+
 #MAKE TARGET DEVELOPMENTAL PATTERN OUT OF CA RULE
 #ONE HOT START
 def rule2targets_wrapped_onehot(r, L, N):
@@ -173,8 +271,6 @@ def rule2targets_wrapped_onehot(r, L, N):
 
   targets = np.zeros((L, N), dtype=np.int32)
   targets[0][int(N/2)] = 1
-  #np.random.seed(42)
-  #targets[0] = np.random.randint(2, size=(N))
 
   for i in range(1, L):
     s = np.pad(targets[i - 1], (1, 1), "wrap")
@@ -193,8 +289,6 @@ def rule2targets_wrapped_wmoveby(r, moveby, L, N):
 
   targets = np.zeros((L, N), dtype=np.int32)
   targets[0][int(N/2)+moveby] = 1
-  #np.random.seed(42)
-  #targets[0] = np.random.randint(2, size=(N))
 
   for i in range(1, L):
     s = np.pad(targets[i - 1], (1, 1), "wrap")
@@ -350,3 +444,22 @@ def get_pop_TPF(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rule, see
   fitnesses=1-(prefitnesses/worst) #0-1 scaling
 
   return target, phenos, fitnesses
+
+def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rule, seed_int):
+  start_pattern = seedID2string(seed_int, num_cells)
+  start_expression = seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
+   
+  target = rule2targets_wrapped_wstart(int(rule), L=dev_steps+1, N=num_cells, start_pattern=start_pattern)
+   
+  #all_phenos = develop(start_expression, pop, dev_steps, pop_size, grn_size, num_cells)
+  all_phenos = develop_torch(start_expression, pop, dev_steps, pop_size, grn_size, num_cells)
+  phenos = all_phenos[:,:,geneid::grn_size]
+   
+  worst= -num_cells*dev_steps
+  prefitnesses = fitness_function_ca(phenos, target)
+  fitnesses=1-(prefitnesses/worst) #0-1 scaling
+
+  return target, phenos, fitnesses
+
+
+
