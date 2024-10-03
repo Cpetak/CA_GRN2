@@ -156,7 +156,7 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=10, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=300, help="season length")
 
@@ -172,7 +172,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "testing"
+  folder_name = "results_testing_L1"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 

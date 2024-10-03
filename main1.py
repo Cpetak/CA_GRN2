@@ -5,10 +5,26 @@ import helper
 
 """#Evolutionary algorythm"""
 
-def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
+def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, mylambda, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
-  np.random.seed(42)
+  rules_str=''.join(str(num) for num in rules)
+  seedints_str=''.join(str(num) for num in seed_ints)
+  mut_rate_str = str(mut_rate)[0] + str(mut_rate)[-1]
+  mut_size_str = str(mut_size)[0] + str(mut_size)[-1]
+  selection_prop_str = str(selection_prop)[0] + str(selection_prop)[-1]
+  assert (len(str(mut_rate)) == 3) & (len(str(mut_size)) == 3) & (len(str(selection_prop)) == 3), f"mut_rate, mut_size, or selection_prop not in the x.y format"
+  
+  rand_seed_str = str(pop_size)+str(grn_size)+str(num_cells)+str(dev_steps)+mut_rate_str+mut_size_str+selection_prop_str+str(season_len)+rules_str+seedints_str+str(job_array_id)
+  print(int(rand_seed_str))
+  rand_seed = helper.map_to_range(int(rand_seed_str))
+  print(rand_seed)
+  
+  np.random.seed(rand_seed)
+
+  with open("experiment_seeds.txt", 'a') as f:
+    np.savetxt(f, [np.array([rand_seed_str,str(rand_seed)])], delimiter=",", fmt="%s")
+  
   #Creating population
 
   #adding a value for each gene in the grn which will be added after matrix multiplication
@@ -73,9 +89,18 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       temp_fitnesses = helper.fitness_function_ca(p, target)
       temp_fitnesses=1-(temp_fitnesses/worst) #0-1 scaling
       fitnesses.append(temp_fitnesses)
+    
+    #L1 regularization 
+    scaling=0.001 #0.001 makes it into similar range as fitness
+    #mylambda = 0.5 #importance of regularization, 1 means that weight sizes are as important as fitness
+    pop_abs = np.abs(pop)
+    pop_abs = np.reshape(pop_abs, (pop_abs.shape[0],pop_abs.shape[1]*pop_abs.shape[2] ))
+    pop_sum = pop_abs.sum(axis=1) * scaling * mylambda
+
+    fitnesses_to_use = fitnesses[curr] + pop_sum
 
     #Selection
-    perm = np.argsort(fitnesses[curr])[::-1]
+    perm = np.argsort(fitnesses_to_use)[::-1]
 
     #Logging
     best_grn = pop[perm[0]]
@@ -133,6 +158,7 @@ if __name__ == "__main__":
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
   parser.add_argument('--num_generations', type=int, default=19799, help="Number of generations")
+  parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=600, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[1024], help='List of seeds in base 10')
@@ -147,7 +173,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_new_rules_one_seedtest"
+  folder_name = "results_testing_L1"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
