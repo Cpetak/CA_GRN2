@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 from numba import njit, prange
 from pathlib import Path
 import seaborn as sns
-import torch
+#import torch
 
 ALPHA = 10
 
