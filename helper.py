@@ -5,6 +5,7 @@ from numba import njit, prange
 from pathlib import Path
 import seaborn as sns
 #import torch
+import hashlib
 
 ALPHA = 10
 
@@ -14,6 +15,9 @@ def prepare_run(folder_name):
     folder.mkdir(parents=True, exist_ok=True)
 
     return folder
+
+def map_to_range(value):
+  return int(hashlib.sha256(str(value).encode()).hexdigest(), 16) % (2**32)
 
 @njit("f8[:,:](f8[:,:],i8, i8)")
 def sigmoid(x,a,c):
