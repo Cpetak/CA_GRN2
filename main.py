@@ -1,5 +1,6 @@
 import numpy as np
 import argparse
+import matplotlib.pyplot as plt
 
 import helper
 
@@ -20,7 +21,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   rand_seed = helper.map_to_range(int(rand_seed_str))
   print(rand_seed)
   
-  np.random.seed(rand_seed)
+  #np.random.seed(rand_seed)
 
   with open("experiment_seeds.txt", 'a') as f:
     np.savetxt(f, [np.array([rand_seed_str,str(rand_seed)])], delimiter=",", fmt="%s")
@@ -55,10 +56,13 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     seeds_ints.append(int(binary_string, 2)) #for file naming
   seeds_id='-'.join([str(number) for number in seeds_ints]) #id of start pattern for each season
   rules_id='-'.join([str(number) for number in rules])
+  where_overlap = np.where(targets[0]==targets[1])
+  where_no_overlap = np.where(targets[0]!=targets[1])
 
   #Logging targets
   max_fits = []
   ave_fits = []
+  best_std = []
   gensin=[10,100,290]
   swichesin=[3,10,15,25,32]
   saveat=[s*300+g for s in swichesin for g in gensin]
@@ -81,6 +85,38 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     #get second gene for each cell only, the one I decided will matter for the fitness
     #pop_size, dev_steps, NCxNG
     p=phenos[:,:,1::grn_size]
+
+    if gen > 0:
+      child_phenotypes = p[children_locs]
+      reshaped=np.reshape(child_phenotypes, (num_child, len(parent_locs), (dev_steps+1)*num_cells))
+      #reshaped is num child per parent, num parents, (dev_steps+1)*num_cells shaped. 
+      # so [:,0,:] is all kids of one parent
+      pheno_stds=np.std(reshaped,axis=0) #one std for each of the parents, so pop_size*trunc_prop now 10
+      pheno_stds = pheno_stds.mean(1).mean() #first averaged across cells, then averaged across individuals in the population
+      # generic phenotypic variation among offspring of the same parent
+
+      #looking for more sophisticated phenotypic variation:
+      reshaped2D=np.reshape(reshaped, (num_child, len(parent_locs), dev_steps+1, num_cells))
+
+      values_they_should_match = reshaped2D[:,:,where_overlap[0],where_overlap[1]]
+      #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they overlap
+      matching_std = np.std(values_they_should_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
+      matching_std = matching_std.mean(axis=1) #average across the N overlaps, to get 1 value for each parent
+
+      #repeat for non-overlap
+      values_they_shouldnt_match = reshaped2D[:,:,where_no_overlap[0],where_no_overlap[1]]
+      #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they don't overlap
+      nonmatching_std = np.std(values_they_shouldnt_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
+      nonmatching_std = nonmatching_std.mean(axis=1) #average across the N non overlaps, to get 1 value for each parent
+
+      #minimum std is 0, max is 0.5 in the case of values that range between 0 and 1
+      combined_std = nonmatching_std - matching_std
+      best_std.append(np.max(combined_std))
+      best_std_id = np.argmax(combined_std)
+      print(parent_locs)
+      best_std_grn = pop[parent_locs[best_std_id]]
+      print(best_std_grn)
+
 
     #Calculating fitnesses
     fitnesses = []
@@ -123,7 +159,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     xs = np.random.choice(x, size=num_genes_mutate)
     ys = np.random.choice(y, size=num_genes_mutate)
     zs = np.random.choice(z, size=num_genes_mutate)
-    children[xs, ys, zs] = children[xs, ys, zs] + mutations
+    #children[xs, ys, zs] = children[xs, ys, zs] + mutations
 
     pop[children_locs] = children  # put children into population
 
@@ -142,26 +178,28 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     np.savetxt(f, max_fits, newline=" ")
   with open(filename+"_avefits.txt", 'w') as f:
     np.savetxt(f, ave_fits, newline=" ")
+  with open(filename+"_beststd.txt", 'w') as f:
+    np.savetxt(f, best_std, newline=" ")
 
   return max_fit
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
+  parser.add_argument('--pop_size', type=int, default=10, help="Population size")
   parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
 
-  parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
+  parser.add_argument('--selection_prop', type=float, default=0.2, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=2, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=300, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[1024], help='List of seeds in base 10')
-  parser.add_argument('--rules', nargs='+', default=[30], help='List of rules')
+  parser.add_argument('--seed_ints', nargs='+', default=[1024,1024], help='List of seeds in base 10')
+  parser.add_argument('--rules', nargs='+', default=[30,90], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
 

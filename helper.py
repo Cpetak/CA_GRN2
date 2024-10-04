@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 from numba import njit, prange
 from pathlib import Path
 import seaborn as sns
-#import torch
+import torch
 import hashlib
 
 ALPHA = 10
@@ -194,11 +194,12 @@ def update_pop_torch(state, grns, NC, NG):
     strides = [padded.strides[0], state.strides[0] // NC, state.strides[1]]
     windows = np.lib.stride_tricks.as_strided(padded, shape=view_shape, strides=strides)
     tgrns = torch.from_numpy(grns).to(device)
+    tgrns.requires_grad_(True)
     twins = torch.from_numpy(windows).to(device)
-    with torch.no_grad():
-        res = torch.matmul(twins, tgrns).cpu()
-        res = torch.clip(res, 0, 1).reshape(POP, NC * NG)
-        return res.cpu().numpy()
+    #with torch.no_grad():
+    res = torch.matmul(twins, tgrns).cpu()
+    res = torch.clip(res, 0, 1).reshape(POP, NC * NG)
+    return res.cpu().numpy()
     # new_state = np.clip(np.matmul(windows, grns), 0, 1)
     # return new_state.reshape(POP, NC * NG)
 
