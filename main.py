@@ -21,7 +21,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   rand_seed = helper.map_to_range(int(rand_seed_str))
   print(rand_seed)
   
-  #np.random.seed(rand_seed)
+  np.random.seed(rand_seed)
 
   with open("experiment_seeds.txt", 'a') as f:
     np.savetxt(f, [np.array([rand_seed_str,str(rand_seed)])], delimiter=",", fmt="%s")
@@ -63,10 +63,12 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   max_fits = []
   ave_fits = []
   best_std = []
-  gensin=[10,100,290]
-  swichesin=[3,10,15,25,32]
-  saveat=[s*300+g for s in swichesin for g in gensin]
-  #save_freq=int(num_generations/5)
+  pheno_stds = []
+  
+  #gensin=[10,100,290]
+  #swichesin=[3,10,15,25,32]
+  #saveat=[s*300+g for s in swichesin for g in gensin]
+  saveat = list(range(num_generations))
   
   filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
 
@@ -91,8 +93,9 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       reshaped=np.reshape(child_phenotypes, (num_child, len(parent_locs), (dev_steps+1)*num_cells))
       #reshaped is num child per parent, num parents, (dev_steps+1)*num_cells shaped. 
       # so [:,0,:] is all kids of one parent
-      pheno_stds=np.std(reshaped,axis=0) #one std for each of the parents, so pop_size*trunc_prop now 10
-      pheno_stds = pheno_stds.mean(1).mean() #first averaged across cells, then averaged across individuals in the population
+      pheno_std=np.std(reshaped,axis=0) #one std for each of the parents, so pop_size*trunc_prop now 10
+      pheno_std = pheno_std.mean(1).mean() #first averaged across cells, then averaged across individuals in the population
+      pheno_stds.append(pheno_std)
       # generic phenotypic variation among offspring of the same parent
 
       #looking for more sophisticated phenotypic variation:
@@ -130,7 +133,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     pop_abs = np.reshape(pop_abs, (pop_abs.shape[0],pop_abs.shape[1]*pop_abs.shape[2] ))
     pop_sum = pop_abs.sum(axis=1) * scaling * mylambda
 
-    fitnesses_to_use = fitnesses[curr] - pop_sum
+    fitnesses_to_use = fitnesses[curr] #- pop_sum
 
     #Selection
     perm = np.argsort(fitnesses_to_use)[::-1]
@@ -157,7 +160,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     xs = np.random.choice(x, size=num_genes_mutate)
     ys = np.random.choice(y, size=num_genes_mutate)
     zs = np.random.choice(z, size=num_genes_mutate)
-    #children[xs, ys, zs] = children[xs, ys, zs] + mutations
+    children[xs, ys, zs] = children[xs, ys, zs] + mutations
 
     pop[children_locs] = children  # put children into population
 
@@ -181,26 +184,29 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     np.savetxt(f, ave_fits, newline=" ")
   with open(filename+"_beststd.txt", 'w') as f:
     np.savetxt(f, best_std, newline=" ")
+  with open(filename+"_pheno_stds.txt", 'w') as f:
+    np.savetxt(f, pheno_stds, newline=" ")
+  
 
   return max_fit
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=10, help="Population size")
+  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
   parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
 
-  parser.add_argument('--selection_prop', type=float, default=0.2, help="Percent pruncation") 
+  parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=2, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=300, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[1024,1024], help='List of seeds in base 10')
-  parser.add_argument('--rules', nargs='+', default=[30,90], help='List of rules')
+  parser.add_argument('--seed_ints', nargs='+', default=[1024], help='List of seeds in base 10')
+  parser.add_argument('--rules', nargs='+', default=[30], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
 
