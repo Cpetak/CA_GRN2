@@ -113,9 +113,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       combined_std = nonmatching_std - matching_std
       best_std.append(np.max(combined_std))
       best_std_id = np.argmax(combined_std)
-      print(parent_locs)
       best_std_grn = pop[parent_locs[best_std_id]]
-      print(best_std_grn)
 
 
     #Calculating fitnesses
@@ -173,6 +171,9 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
         np.savetxt(f, best_grn, newline=" ")
       with open(filename+"_both_fits.txt", 'a') as f:
         np.savetxt(f, np.array(fitnesses), newline=" ")
+      if gen > 0:
+        with open(filename+"_best_grn_std.txt", 'a') as f:
+          np.savetxt(f, best_std_grn, newline=" ")
 
   with open(filename+"_maxfits.txt", 'w') as f:
     np.savetxt(f, max_fits, newline=" ")
