@@ -6,6 +6,10 @@ from pathlib import Path
 import seaborn as sns
 #import torch
 import hashlib
+from matplotlib.patches import Polygon
+import matplotlib.pyplot as plt
+import pandas as pd
+import math
 
 ALPHA = 10
 
@@ -18,6 +22,47 @@ def prepare_run(folder_name):
 
 def map_to_range(value):
   return int(hashlib.sha256(str(value).encode()).hexdigest(), 16) % (2**32)
+
+def calculate_distance(x1, y1, x2, y2):
+    # Calculate the distance using the distance formula
+    distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    return distance
+
+def calc_div_BH(fitnesses1, fitnesses2, tdf):
+    '''
+    fitnesses1 is a list of fitnesses in env A for all individuals
+    fitnesses2 is a list of fitnesses in env B for all individuals
+    tdf is a dataframe of values defining points along the rectange of possibilities
+    '''
+    dists = [] #low value, close by
+    fits = list(zip(fitnesses1, fitnesses2))
+    for f in fits: #for each individual
+        d_A=calculate_distance(tdf.iloc[0]["x"], tdf.iloc[0]["y"], f[0], f[1]) # distance to target A
+        d_B=calculate_distance(tdf.iloc[1]["x"], tdf.iloc[1]["y"], f[0], f[1]) # distance to target B
+        dists.append(min(d_A, d_B))
+
+    max_distance=calculate_distance(tdf.iloc[1]["x"],tdf.iloc[1]["y"],tdf.iloc[6]["x"],tdf.iloc[6]["y"])
+    print(max_distance)
+    dists = np.array(dists)
+    print(dists)
+    dists = 1-dists/max_distance # if distance is 0, it is 1 (max), if distance is 1, which is the biggest, it is 0 (min)
+    print(dists)
+    dists = dists ** 2 #make it nonlinear to punish for really bad fitness, away from any target
+    print(dists)
+    dists = np.mean(dists) #so range: 0-1 and the bigger the better - the closer it is to one of the targets
+    print(dists)
+    print("end of dists --------")
+
+    stds = (np.std(fitnesses1) + np.std(fitnesses2)) /2
+    print(stds)
+    max_stds = (np.std([tdf.iloc[0]["x"], tdf.iloc[1]["x"]]) + np.std([tdf.iloc[0]["y"], tdf.iloc[1]["y"]])) /2
+    tresholded_stds = min(stds, max_stds) # greater std than max_std is not needed to be a perfect diversifier
+    f_stds = tresholded_stds/max_stds #what percentage of max this is, so range 0-1. 1 = as diverse as it can be, the bigger the better
+    print(f_stds)
+
+    div_BH = (f_stds + dists) / 2 #averaged so that is it between 0 and 1
+    
+    return div_BH
 
 @njit("f8[:,:](f8[:,:],i8, i8)")
 def sigmoid(x,a,c):
@@ -468,3 +513,93 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
 
 
 
+def make_restricted_plot(all_targs, num_cells, dev_steps, dot_xs, dot_ys, labelled=True):
+    
+    worst= -num_cells*(dev_steps+1)
+    oritargs = np.array([all_targs[0],all_targs[1]])
+
+    where_overlap = np.where(all_targs[0]==all_targs[1])
+    where_no_overlap = np.where(all_targs[0]!=all_targs[1])
+
+    bestgen=all_targs[0].copy()
+    bestgen[where_no_overlap] = 0.5
+    bestgen = np.expand_dims(bestgen, axis=0)
+
+    half= int(len(where_no_overlap[0])/2)
+
+    a = all_targs[0].copy()
+    a[tuple(idx[:half] for idx in where_no_overlap)] = 0.5
+    a = np.expand_dims(a, axis=0)
+
+    b = all_targs[1].copy()
+    b[tuple(idx[:half] for idx in where_no_overlap)] = 0.5
+    b = np.expand_dims(b, axis=0)
+
+    inperfa = 1 - all_targs[0].copy()
+    inperfa = np.expand_dims(inperfa, axis=0)
+    inperfb = 1 - all_targs[1].copy()
+    inperfb = np.expand_dims(inperfb, axis=0)
+
+    worstgen=inperfa[0].copy()
+    worstgen[where_no_overlap] = 0.5
+    worstgen = np.expand_dims(worstgen, axis=0)
+
+    c= all_targs[0].copy()
+    c[where_overlap] = 0.5
+    c = np.expand_dims(c, axis=0)
+
+    d= all_targs[1].copy()
+    d[where_overlap] = 0.5
+    d = np.expand_dims(d, axis=0)
+
+    labels = ["A", "B", "Overlap good, rest 0.5", "Overlap good, rest/2 0.5, A", "Overlap good, rest/2 0.5, B", "A inverse","B inverse", "Overlap inverse, rest 0.5"]
+    labels.append("A but overlap 0.5")
+    labels.append("B but overlap 0.5")
+
+    pop = np.concatenate((oritargs, bestgen,a,b,inperfa,inperfb,worstgen,c,d), axis=0) #0,1, 4,5
+
+    fitnesses1 = -np.abs(pop - all_targs[0]).sum(axis=1).sum(axis=1)
+    fitnesses1=1-(fitnesses1/worst) #0-1 scaling
+    fitnesses2 = -np.abs(pop - all_targs[1]).sum(axis=1).sum(axis=1)
+    fitnesses2=1-(fitnesses2/worst) #0-1 scaling
+
+    pop_df = pd.DataFrame()
+    pop_df["x"]=fitnesses1
+    pop_df["y"]=fitnesses2
+    xs=fitnesses1
+    ys=fitnesses2
+
+    if labelled:
+        labels = list(zip(fitnesses1,fitnesses2))
+        plt.scatter(pop_df["x"], pop_df["y"])
+        for i, label in enumerate(labels): 
+            plt.text(
+                xs[i],
+                ys[i],
+                label,
+                ha="center",
+                va="bottom",
+                color="black",
+            )
+
+    plt.scatter(dot_xs, dot_ys)
+    sns.set_style("whitegrid")
+
+    plt.xlim(-0.05,1.05)
+    plt.ylim(-0.05,1.05)
+
+    myhatch='..'
+    mycolor="C0"
+    triangle = Polygon([[1,1], pop_df.iloc[0], pop_df.iloc[1]], closed=True, alpha=0.5,edgecolor=mycolor, facecolor='none',hatch=myhatch)
+    plt.gca().add_patch(triangle)
+    triangle = Polygon([[0,0], pop_df.iloc[5], pop_df.iloc[6]], closed=True, alpha=0.5,edgecolor=mycolor, facecolor='none',hatch=myhatch)
+    plt.gca().add_patch(triangle)
+    triangle = Polygon([[0,1], pop_df.iloc[1], pop_df.iloc[5]], closed=True, alpha=0.5,edgecolor=mycolor, facecolor='none',hatch=myhatch)
+    plt.gca().add_patch(triangle)
+    triangle = Polygon([[1,0], pop_df.iloc[0], pop_df.iloc[6]], closed=True, alpha=0.5,edgecolor=mycolor, facecolor='none',hatch=myhatch)
+    plt.gca().add_patch(triangle)
+
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.show()
+
+    return pop_df
