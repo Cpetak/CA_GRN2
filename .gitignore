@@ -7,3 +7,4 @@ all_rules_1hot_static/
 *_maxfits.txt
 final_results_all
 Sbatch*
+experiment_seeds.txt
