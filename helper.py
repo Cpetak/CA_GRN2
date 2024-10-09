@@ -10,6 +10,7 @@ from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+import os
 
 ALPHA = 10
 
@@ -63,6 +64,38 @@ def calc_div_BH(fitnesses1, fitnesses2, tdf):
     div_BH = (f_stds + dists) / 2 #averaged so that is it between 0 and 1
     
     return div_BH
+
+def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
+    child_phenotypes = p[children_locs] 
+    # inner most list: first: first born of each parent, second: second borns of each parent, etc.
+    # so it is NOT all kids of 1 parent, then the other parent, etc.
+    reshaped=np.reshape(child_phenotypes, (num_child, len(parent_locs), (dev_steps+1)*num_cells))
+    #reshaped is num child per parent, num parents, (dev_steps+1)*num_cells shaped. 
+    # so [:,0,:] is all kids of one parent
+    pheno_std=np.std(reshaped,axis=0) #one std for each of the parents, so pop_size*trunc_prop now 10
+    pheno_std = pheno_std.mean(1).mean() #first averaged across cells, then averaged across individuals in the population
+    # generic phenotypic variation among offspring of the same parent
+
+    #looking for more sophisticated phenotypic variation:
+    reshaped2D=np.reshape(reshaped, (num_child, len(parent_locs), dev_steps+1, num_cells))
+
+    values_they_should_match = reshaped2D[:,:,where_overlap[0],where_overlap[1]]
+    #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they overlap
+    matching_std = np.std(values_they_should_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
+    matching_std = matching_std.mean(axis=1) #average across the N overlaps, to get 1 value for each parent
+
+    #repeat for non-overlap
+    values_they_shouldnt_match = reshaped2D[:,:,where_no_overlap[0],where_no_overlap[1]]
+    #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they don't overlap
+    nonmatching_std = np.std(values_they_shouldnt_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
+    nonmatching_std = nonmatching_std.mean(axis=1) #average across the N non overlaps, to get 1 value for each parent
+
+    #minimum std is 0, max is 0.5 in the case of values that range between 0 and 1
+    combined_std = nonmatching_std - matching_std
+    averaged_combined_std = np.mean(combined_std)
+    best_std_id = np.argmax(combined_std)
+
+    return pheno_std, np.max(combined_std), best_std_id, averaged_combined_std
 
 @njit("f8[:,:](f8[:,:],i8, i8)")
 def sigmoid(x,a,c):
@@ -511,7 +544,104 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
 
   return target, phenos, fitnesses
 
+def get_fits(rules, seed_ints, metric, root, season_len, exprapolate=True):
+    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(5)]
+    if rules[0] == rules[1]:
+            if rules[0] in [154,82,86,18]:
+                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(5)]
+                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(5)]
+            else:
+                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_600_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(5)]
+                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_600_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(5)]
+    else:
+        print("scenario not yet implemented")
 
+    if exprapolate:
+        diff_len = len(vari_maxs[0]) - len(env1_maxs[0])
+        if diff_len > 1:
+            env1_maxs=np.array(env1_maxs)
+            env2_maxs=np.array(env2_maxs)
+            last_elements = env1_maxs[:,-1]
+            last_elements=np.tile(last_elements, (diff_len, 1)).T
+            env1_maxs = np.hstack((env1_maxs, last_elements))
+            last_elements = env2_maxs[:,-1]
+            last_elements=np.tile(last_elements, (diff_len, 1)).T
+            env2_maxs = np.hstack((env2_maxs, last_elements))
+
+    return vari_maxs, env1_maxs, env2_maxs
+
+def chunker(runs, season_len = 300):
+    florp = np.array(runs).mean(axis=0) # average runs
+    n_seasons = int(np.floor(florp.shape[0]/season_len))
+    chunked_seasons = np.array([florp[i*300:(i+1)*300] for i in range(n_seasons)])
+    assert chunked_seasons.size == season_len * n_seasons #safety check
+    chunked_season1, chunked_season2 = chunked_seasons[0::2], chunked_seasons[1::2]
+    max_chunked_season1, max_chunked_season2 = chunked_season1.max(axis=1),chunked_season2.max(axis=1)
+    return max_chunked_season1.max(), max_chunked_season2.max()
+
+def scatter_value(variable, season1, season2, season_len):
+    vari_env1, vari_env2 = chunker(variable, season_len=season_len)
+    M_env1 = np.array(season1).mean(axis=0).max()
+    M_env2 = np.array(season2).mean(axis=0).max()
+    diffs = (vari_env1 - M_env1, vari_env2 - M_env2)
+    return diffs
+
+def main_plt(xs, ys, rules, ax):
+  ax.scatter(xs, ys, s=40, zorder=3, color="red", edgecolors="black")
+  fontsize = 18
+
+  for i, label in enumerate(rules):
+      if label == 254:
+          ax.annotate(
+              label,
+              fontsize=fontsize,
+              xy=(xs[i], ys[i]),
+              xytext=(xs[i] - 0.03, ys[i] + 0.02),
+              arrowprops=dict(
+                  facecolor="black", shrink=0.05, width=0.2, headwidth=3, headlength=5
+              ),
+          )
+      elif label == 50:
+          ax.annotate(
+              label,
+              fontsize=fontsize,
+              xy=(xs[i], ys[i]),
+              xytext=(xs[i] + 0.01, ys[i] + 0.02),
+              arrowprops=dict(
+                  facecolor="black", shrink=0.05, width=0.2, headwidth=3, headlength=5
+              ),
+          )
+      else:
+          ax.text(
+              xs[i],
+              ys[i],
+              label,
+              fontsize=fontsize,
+              ha="center",
+              va="bottom",
+              color="black",
+          )
+
+  ax.set_xlim(-0.06, 0.12)
+  ax.set_ylim(-0.06, 0.12)
+  ax.axvline(0, lw=1, color="black")
+  ax.axhline(0, lw=1, color="black")
+  ax.set_xlabel("Max fit of variable - Max fit of static T1",fontsize=22)
+  ax.set_ylabel("Max fit of variable - Max fit of static T2",fontsize=22)
+  ax.grid(zorder=0)
+
+def chunker_plotting(run, season_len = 300):
+    gens=list(range(len(run)))
+    n_seasons = int(np.floor(run.shape[0]/season_len))
+    chunked_seasons = np.array([run[i*300:(i+1)*300] for i in range(n_seasons)])
+    chunked_gens = np.array([gens[i*300:(i+1)*300] for i in range(n_seasons)])
+
+    assert chunked_seasons.size == season_len * n_seasons #safety check
+
+    chunked_season1, chunked_season2 = chunked_seasons[0::2], chunked_seasons[1::2]
+    chunked_gens1, chunked_gens2 = chunked_gens[0::2], chunked_gens[1::2]
+    
+    return chunked_season1, chunked_season2, chunked_gens1, chunked_gens2
 
 def make_restricted_plot(all_targs, num_cells, dev_steps, dot_xs, dot_ys, labelled=True):
     
