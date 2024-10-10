@@ -544,15 +544,15 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
 
   return target, phenos, fitnesses
 
-def get_fits(rules, seed_ints, metric, root, season_len, exprapolate=True):
-    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(5)]
+def get_fits(rules, seed_ints, metric, root, season_len, num_reps, exprapolate=True):
+    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     if rules[0] == rules[1]:
             if rules[0] in [154,82,86,18]:
-                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(5)]
-                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(5)]
+                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
             else:
-                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_600_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(5)]
-                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_600_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(5)]
+                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_20000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_20000_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     else:
         print("scenario not yet implemented")
 
@@ -642,6 +642,33 @@ def chunker_plotting(run, season_len = 300):
     chunked_gens1, chunked_gens2 = chunked_gens[0::2], chunked_gens[1::2]
     
     return chunked_season1, chunked_season2, chunked_gens1, chunked_gens2
+
+def try_grn(variable, rule, run_seedints, try_seedints, grn_size, geneid, root, num_cells, dev_steps):
+    last_grns=[]
+    for i in range(5):
+        if variable:
+            filename = f"{root}/stats_300_{rule}-{rule}_{run_seedints[0]}-{run_seedints[1]}_{i+1}" + "_best_grn.txt"
+        else:
+            if rule in [154,82,86,18]:
+                filename = f"results_new_rules/stats_0_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt"
+            else:
+                filename = f"results_new_rules/stats_600_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt"
+        grns = np.loadtxt(filename)
+        num_grns = int(grns.shape[0]/(grn_size+2)/grn_size)
+        grns = grns.reshape(num_grns,grn_size+2,grn_size)
+        grn = grns[-1,:,:]
+        last_grns.append(grn)
+    last_grns = np.array(last_grns)
+
+    last_phenos=[]
+    fits = []
+    for s in try_seedints:
+        targets, phenos, fitnesses = get_pop_TPF(last_grns, len(last_grns), num_cells, grn_size, dev_steps, geneid, rule, s)
+        last_phenos.append(phenos)
+        fits.append(fitnesses)
+    last_phenos = np.array(last_phenos)
+    fits = np.array(fits)
+    return last_phenos, fits, last_grns
 
 def make_restricted_plot(all_targs, num_cells, dev_steps, dot_xs, dot_ys, labelled=True):
     

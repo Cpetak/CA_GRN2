@@ -1,5 +1,6 @@
 import numpy as np
 import argparse
+from tqdm import trange
 
 import helper
 
@@ -59,9 +60,13 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   best_std = []
   pheno_stds = []
   spec_pheno_stds = []
+  geno_stds = []
   saveat = list(range(num_generations))
-  
-  filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
+
+  if season_len > num_generations: #static experiment
+    filename = f"{folder}/stats_{season_len}_{rules[0]}_{seeds_ints[0]}_{job_array_id}"
+  else:
+    filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
 
   #Defining variables
   curr = 0
@@ -72,7 +77,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   num_genes_mutate = int((grn_size + 2) * grn_size * tot_children * mut_rate)
 
   # Main for loop
-  for gen in range(num_generations):
+  for gen in trange(num_generations):
 
     # Generating phenotypes
     #Return [pop_size, dev_stepss+1, num_cellsxgrn_size] np.float64 array
@@ -83,6 +88,10 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 
     # Logging phenotypic variation
     if gen > 0:
+      temp_pop = np.reshape(pop, (pop_size, (grn_size+2)*grn_size))
+      geno_std = np.std(temp_pop, axis=0).mean() #calc std for each weight in the pop, then average
+      geno_stds.append(geno_std)
+
       pheno_std, best_std_val, best_std_id, averaged_combined_std = helper.calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap)
       pheno_stds.append(pheno_std)
       best_std.append(best_std_val)
@@ -177,6 +186,8 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     np.savetxt(f, pheno_stds, newline=" ")
   with open(filename+"_spec_pheno_stds.txt", 'w') as f:
     np.savetxt(f, spec_pheno_stds, newline=" ")
+  with open(filename+"_geno_stds.txt", 'w') as f:
+    np.savetxt(f, geno_stds, newline=" ")
 
   return max_fit
 
@@ -191,14 +202,14 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=50, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=2000, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
-  parser.add_argument('--season_len', type=int, default=20_000, help="season length")
+  parser.add_argument('--season_len', type=int, default=20000, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
-  parser.add_argument('--rules', nargs='+', default=[90,90], help='List of rules')
+  parser.add_argument('--seed_ints', nargs='+', default=[149796,69904], help='List of seeds in base 10')
+  parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
 
-  parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
+  parser.add_argument('--job_array_id', type=int, default=2, help="Job array id to distinguish runs")
 
   args = parser.parse_args()
 
