@@ -30,41 +30,27 @@ def calculate_distance(x1, y1, x2, y2):
     distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
     return distance
 
-def calc_div_BH(fitnesses1, fitnesses2, tdf):
-    '''
-    fitnesses1 is a list of fitnesses in env A for all kids of an individual
-    fitnesses2 is a list of fitnesses in env B for all kids of an individual
-    tdf is a dataframe of values defining points along the rectange of possibilities
-    '''
-    dists = [] #low value, close by
-    fits = list(zip(fitnesses1, fitnesses2))
-    for f in fits: #for each individual
-        d_A=calculate_distance(tdf.iloc[0]["x"], tdf.iloc[0]["y"], f[0], f[1]) # distance to target A
-        d_B=calculate_distance(tdf.iloc[1]["x"], tdf.iloc[1]["y"], f[0], f[1]) # distance to target B
-        dists.append(min(d_A, d_B))
+def calc_div_BH(kid_fits, landmarks):
+    d_A = np.sqrt((kid_fits[:,:,:,0,:,:] - landmarks.iloc[0]["x"]) ** 2 + (kid_fits[:,:,:,1,:,:] - landmarks.iloc[0]["y"]) ** 2) # distance to target A
+    d_B = np.sqrt((kid_fits[:,:,:,0,:,:] - landmarks.iloc[1]["x"]) ** 2 + (kid_fits[:,:,:,1,:,:] - landmarks.iloc[1]["y"]) ** 2) # distance to target B
 
-    max_distance=calculate_distance(tdf.iloc[1]["x"],tdf.iloc[1]["y"],tdf.iloc[6]["x"],tdf.iloc[6]["y"])
-    print(max_distance)
-    dists = np.array(dists)
-    print(dists)
+    dists = np.minimum(d_A, d_B)
+    max_distance=calculate_distance(landmarks.iloc[1]["x"],landmarks.iloc[1]["y"],landmarks.iloc[6]["x"],landmarks.iloc[6]["y"])
     dists = 1-dists/max_distance # if distance is 0, it is 1 (max), if distance is 1, which is the biggest, it is 0 (min)
-    print(dists)
     dists = dists ** 2 #make it nonlinear to punish for really bad fitness, away from any target
-    print(dists)
-    dists = np.mean(dists) #so range: 0-1 and the bigger the better - the closer it is to one of the targets
-    print(dists)
-    print("end of dists --------")
+    dists = np.mean(dists, axis=4) #so range: 0-1 and the bigger the better - the closer it is to one of the targets
 
-    stds = (np.std(fitnesses1) + np.std(fitnesses2)) /2
-    print(stds)
-    max_stds = (np.std([tdf.iloc[0]["x"], tdf.iloc[1]["x"]]) + np.std([tdf.iloc[0]["y"], tdf.iloc[1]["y"]])) /2
-    tresholded_stds = min(stds, max_stds) # greater std than max_std is not needed to be a perfect diversifier
+    std1 = np.std(kid_fits[:,:,:,0,:,:], axis = 4)
+    std2 = np.std(kid_fits[:,:,:,1,:,:], axis = 4)
+    stds = (std1 + std2) /2
+    max_stds = (np.std([landmarks.iloc[0]["x"], landmarks.iloc[1]["x"]]) + np.std([landmarks.iloc[0]["y"], landmarks.iloc[1]["y"]])) /2
+    tresholded_stds = np.minimum(stds, max_stds) # greater std than max_std is not needed to be a perfect diversifier
     f_stds = tresholded_stds/max_stds #what percentage of max this is, so range 0-1. 1 = as diverse as it can be, the bigger the better
-    print(f_stds)
 
     div_BH = (f_stds + dists) / 2 #averaged so that is it between 0 and 1
-    
-    return div_BH
+    div_BH_mean = np.mean(div_BH, axis = 3)
+
+    return div_BH_mean
 
 def calc_conz_BH(all_fits, landmarks_list):
     #input: whole dataset with all experiments, repetitions, generations, fitnesses, individuals
