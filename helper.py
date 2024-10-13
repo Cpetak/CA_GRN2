@@ -12,6 +12,9 @@ import pandas as pd
 import math
 import os
 import math
+import colorsys
+from collections import defaultdict
+import networkx as nx
 
 ALPHA = 10
 
@@ -48,9 +51,9 @@ def calc_div_BH(kid_fits, landmarks):
     f_stds = tresholded_stds/max_stds #what percentage of max this is, so range 0-1. 1 = as diverse as it can be, the bigger the better
 
     div_BH = (f_stds + dists) / 2 #averaged so that is it between 0 and 1
-    div_BH_mean = np.mean(div_BH, axis = 3)
+    div_BH_mean = np.mean(div_BH, axis = 3) #average across parents 
 
-    return div_BH_mean
+    return div_BH, div_BH_mean
 
 def calc_conz_BH(all_fits, landmarks_list):
     #input: whole dataset with all experiments, repetitions, generations, fitnesses, individuals
@@ -75,7 +78,7 @@ def calc_conz_BH(all_fits, landmarks_list):
     conz_BH = (prop_distance_best + prop_distance_line) / 2
     conz_BH_mean = np.mean(conz_BH, axis = 3)  #average across individuals  
 
-    return conz_BH_mean
+    return conz_BH, conz_BH_mean
 
 def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
     child_phenotypes = p[children_locs] 
@@ -525,11 +528,12 @@ def plot_three_line(ax, rule, data1, data2, data3, season_len=300, legend=False)
         ax.text(base + season_len*2, height, "T1", **kwargs)
         ax.text(base + season_len*3, height, "T2", **kwargs)
 
-def get_pop_TPF(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rule, seed_int):
-  start_pattern = seedID2string(seed_int, num_cells)
-  start_expression = seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
-   
+def get_pop_TPF(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rule, seed_int_target, seed_int_dev):
+  start_pattern = seedID2string(seed_int_target, num_cells)
   target = rule2targets_wrapped_wstart(int(rule), L=dev_steps+1, N=num_cells, start_pattern=start_pattern)
+
+  start_pattern = seedID2string(seed_int_dev, num_cells)
+  start_expression = seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
    
   all_phenos = develop(start_expression, pop, dev_steps, pop_size, grn_size, num_cells)
   phenos = all_phenos[:,:,geneid::grn_size]
@@ -772,6 +776,61 @@ def make_restricted_plot(all_targs, num_cells, dev_steps, dot_xs, dot_ys, labell
     plt.show()
 
     return pop_df
+
+#coloring
+def generate_colors(n):
+    # Generate colors in HSL
+    colors = []
+    for i in range(n):
+        # Generate hue, saturation, and lightness
+        hue = i / n  # Normalize hue
+        saturation = 0.7  # Set saturation to 70%
+        lightness = 0.5  # Set lightness to 50%
+        
+        # Convert HSL to RGB
+        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+        colors.append(rgb)
+    return colors
+
+def make_network(num_gens_show, pop_size, edges):
+    # Set up network
+    num_rows = num_gens_show+1
+    num_columns = pop_size
+    G = nx.Graph()
+    # Add nodes with specified positions
+    pos = {}
+    for i in range(num_rows):
+        for j in range(num_columns):
+            node = (i, j)
+            G.add_node(node)
+            pos[node] = (j, -i)  # Assigning positions based on rows and columns
+
+    # Add edges from the edges variable
+    mydic=defaultdict(list) #make dictionary to keep track of OG where it comes from
+    for i in range(len(edges)):
+        G.add_edge(edges[i][0],edges[i][1])
+        if edges[i][0][0] == 0: #if it is the first generation
+            mydic[edges[i][0]].append(edges[i][1])
+        else:
+            for k in mydic.keys():
+                if edges[i][0] in mydic[k]:
+                    mydic[k].append(edges[i][1])
+
+    colors = generate_colors(pop_size)
+    node_colors = []
+    for c in colors:
+        node_colors.append(c) #colors for the first generation
+    color_dic = {}
+    for idx, node in enumerate(G.nodes()):
+        if node[0] == 0:
+            color_dic[node] = colors[idx] #color assigned to each original parent
+    for node in G.nodes():
+        if node[0] != 0:
+            for k in mydic.keys():
+                if node in mydic[k]:
+                    node_colors.append(color_dic[k]) #assign color based on original parent
+    
+    return G, pos, node_colors
 
 '''
 TESTING GENERALIST FUNCTION
