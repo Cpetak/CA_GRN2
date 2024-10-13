@@ -25,7 +25,6 @@ def prepare_run(folder_name):
 def map_to_range(value):
   return int(hashlib.sha256(str(value).encode()).hexdigest(), 16) % (2**32)
 
-#@njit
 def calculate_distance(x1, y1, x2, y2):
     # Calculate the distance using the distance formula
     distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
@@ -67,25 +66,30 @@ def calc_div_BH(fitnesses1, fitnesses2, tdf):
     
     return div_BH
 
-#@njit
-def calc_conz_BH(fitness1, fitness2, landmarks_list):
-    #input: single individual
+def calc_conz_BH(all_fits, landmarks_list):
+    #input: whole dataset with all experiments, repetitions, generations, fitnesses, individuals
+
+    #setting up variables
     bestgen=np.array([landmarks_list[0],landmarks_list[1]])
-    distance_best=calculate_distance(fitness1, fitness2, bestgen[0], bestgen[1]) #want this to be small
     max_distance_best = calculate_distance(bestgen[0], bestgen[1], landmarks_list[1], landmarks_list[2]) #bottom left corner
-    prop_distance_best = 1 - distance_best/max_distance_best
-    
+    max_distance_line = calculate_distance(bestgen[0], bestgen[1], landmarks_list[3], landmarks_list[4]) #top right corner
     bot=np.array([0,0])
     top=np.array([1,1])
-    mypoint=np.array([fitness1,fitness2])
-    distance_line=np.cross(top-bot,mypoint-bot)/np.linalg.norm(top-bot) #want this to be small
+    diagonal_vector = top - bot
+    diagonal_vector_expanded = diagonal_vector[np.newaxis, np.newaxis, np.newaxis, :, np.newaxis]
+    bot_expanded = bot[np.newaxis, np.newaxis, np.newaxis, :, np.newaxis]
 
-    max_distance_line = calculate_distance(bestgen[0], bestgen[1], landmarks_list[3], landmarks_list[4]) #top right corner
+    #calculating generalism for each individual
+    distance_best = np.sqrt((bestgen[0] - all_fits[:,:,:,0,:]) ** 2 + (bestgen[1] - all_fits[:,:,:,1,:]) ** 2) #want this to be small
+    prop_distance_best = 1 - distance_best/max_distance_best
+
+    distance_line = np.cross(diagonal_vector_expanded, all_fits - bot_expanded, axis = 3) / np.linalg.norm(diagonal_vector_expanded) #want this to be small
     prop_distance_line = 1 - distance_line/max_distance_line
 
-    conz_BH = (prop_distance_best + prop_distance_line) / 2 #averaged so that is it between 0 and 1
+    conz_BH = (prop_distance_best + prop_distance_line) / 2
+    conz_BH_mean = np.mean(conz_BH, axis = 3)  #average across individuals  
 
-    return conz_BH
+    return conz_BH_mean
 
 def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
     child_phenotypes = p[children_locs] 
