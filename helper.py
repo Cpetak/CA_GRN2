@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import math
 import os
+import math
 
 ALPHA = 10
 
@@ -24,6 +25,7 @@ def prepare_run(folder_name):
 def map_to_range(value):
   return int(hashlib.sha256(str(value).encode()).hexdigest(), 16) % (2**32)
 
+#@njit
 def calculate_distance(x1, y1, x2, y2):
     # Calculate the distance using the distance formula
     distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
@@ -31,8 +33,8 @@ def calculate_distance(x1, y1, x2, y2):
 
 def calc_div_BH(fitnesses1, fitnesses2, tdf):
     '''
-    fitnesses1 is a list of fitnesses in env A for all individuals
-    fitnesses2 is a list of fitnesses in env B for all individuals
+    fitnesses1 is a list of fitnesses in env A for all kids of an individual
+    fitnesses2 is a list of fitnesses in env B for all kids of an individual
     tdf is a dataframe of values defining points along the rectange of possibilities
     '''
     dists = [] #low value, close by
@@ -64,6 +66,26 @@ def calc_div_BH(fitnesses1, fitnesses2, tdf):
     div_BH = (f_stds + dists) / 2 #averaged so that is it between 0 and 1
     
     return div_BH
+
+#@njit
+def calc_conz_BH(fitness1, fitness2, landmarks_list):
+    #input: single individual
+    bestgen=np.array([landmarks_list[0],landmarks_list[1]])
+    distance_best=calculate_distance(fitness1, fitness2, bestgen[0], bestgen[1]) #want this to be small
+    max_distance_best = calculate_distance(bestgen[0], bestgen[1], landmarks_list[1], landmarks_list[2]) #bottom left corner
+    prop_distance_best = 1 - distance_best/max_distance_best
+    
+    bot=np.array([0,0])
+    top=np.array([1,1])
+    mypoint=np.array([fitness1,fitness2])
+    distance_line=np.cross(top-bot,mypoint-bot)/np.linalg.norm(top-bot) #want this to be small
+
+    max_distance_line = calculate_distance(bestgen[0], bestgen[1], landmarks_list[3], landmarks_list[4]) #top right corner
+    prop_distance_line = 1 - distance_line/max_distance_line
+
+    conz_BH = (prop_distance_best + prop_distance_line) / 2 #averaged so that is it between 0 and 1
+
+    return conz_BH
 
 def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
     child_phenotypes = p[children_locs] 
@@ -760,3 +782,64 @@ def make_restricted_plot(all_targs, num_cells, dev_steps, dot_xs, dot_ys, labell
     plt.show()
 
     return pop_df
+
+'''
+TESTING GENERALIST FUNCTION
+import math
+bestgen = landmarks.iloc[2][0]
+p1=[bestgen, bestgen]
+p2=[0.488142, 1.000000]
+midpoint = ((p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2)
+
+distance=helper.calculate_distance(p1[0], p1[1], midpoint[0], midpoint[1])
+new_x = p1[0] - distance / math.sqrt(2)
+new_y = p1[1] - distance / math.sqrt(2)
+distance=helper.calculate_distance(p1[0], p1[1], new_x, new_y)
+
+plt.xlim(0,1)
+plt.ylim(0,1)
+plt.scatter(p1[0],p1[1], color="green")
+plt.scatter(midpoint[0],midpoint[1], color="orange")
+plt.scatter(new_x,new_y,color="red")
+plt.scatter(new_x, p1[1], color="blue")
+plt.gca().set_aspect('equal', adjustable='box')
+plt.show()
+
+#NOTE: I want a generalist calculator where the midpoint (yellow) has a pretty bad score,
+# the red one on the diagonal has a better score (eventhough same distance from green)
+# and the blue has exactly and inbetween score
+# so we can have a distance from green + distance from line, balanced
+
+orange = calc_conz_BH(midpoint[0], midpoint[1], landmarks)
+green = calc_conz_BH(p1[0],p1[1], landmarks)
+red = calc_conz_BH(new_x,new_y, landmarks)
+blue = calc_conz_BH(new_x, p1[1], landmarks)
+
+labels=[]
+i_s = []
+j_s = []
+fig = plt.figure(figsize=(10,10))
+for i in np.arange(0,1,0.1):
+    for j in np.arange(0,1,0.1):
+        one, two = calc_conz_BH(i, j, landmarks)
+        if (one > 0) & (two > 0):
+            i_s.append(i)
+            j_s.append(j)
+            labels.append((round(one, 2),round(two, 2)))
+            plt.scatter(i,j, color="blue")
+
+#plt.scatter(pop_df["x"], pop_df["y"])
+for i, label in enumerate(labels): 
+    plt.text(
+        i_s[i],
+        j_s[i],
+        label,
+        ha="center",
+        va="bottom",
+        color="black",
+    )
+plt.xlim(0,1)
+plt.ylim(0,1)
+plt.gca().set_aspect('equal', adjustable='box')
+plt.show()
+'''
