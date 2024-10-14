@@ -26,9 +26,6 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 
   with open("experiment_seeds.txt", 'a') as f:
     np.savetxt(f, [np.array([rand_seed_str,str(rand_seed)])], delimiter=",", fmt="%s")
-  
-  #Creating population
-  pop = np.random.randn(pop_size, grn_size+2, grn_size).astype(np.float64)
 
   #Creating start expression pattern
   geneid = 1
@@ -75,6 +72,23 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   num_child = int(pop_size / selection_size) - 1
   tot_children = num_child * selection_size
   num_genes_mutate = int((grn_size + 2) * grn_size * tot_children * mut_rate)
+
+  #Creating population
+  start_from_file = True
+  extension_id = 1
+  if start_from_file:
+    pop_from_file = np.loadtxt(filename+"_last_pop.txt")
+    filename = filename + f"_extension_{extension_id}"
+    rand_seed = helper.map_to_range(int(rand_seed_str)+extension_id)
+    np.random.seed(rand_seed)
+    with open("experiment_seeds.txt", 'a') as f:
+      np.savetxt(f, [np.array([rand_seed_str+str(extension_id),str(rand_seed)])], delimiter=",", fmt="%s")
+
+    pop = np.reshape(pop_from_file, (pop_size, grn_size + 2, grn_size))
+    print(pop.shape)
+    print(pop[0])
+  else:
+    pop = np.random.randn(pop_size, grn_size+2, grn_size).astype(np.float64)
 
   # Main for loop
   for gen in trange(num_generations):
@@ -189,6 +203,11 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   with open(filename+"_geno_stds.txt", 'w') as f:
     np.savetxt(f, geno_stds, newline=" ")
 
+  #Save population so that I can run for longer if needed
+  pop_2_save = np.reshape(pop, (pop_size,(grn_size+2)*grn_size))
+  with open(filename+"_last_pop.txt", 'w') as f:
+    np.savetxt(f, pop_2_save, newline=" ")
+
   return max_fit
 
 if __name__ == "__main__":
@@ -202,14 +221,14 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=2000, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=20, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=20000, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[149796,69904], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
 
-  parser.add_argument('--job_array_id', type=int, default=2, help="Job array id to distinguish runs")
+  parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
 
   args = parser.parse_args()
 
@@ -218,7 +237,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_saving"
+  folder_name = "results_testing_saving2" #"~/scratch/detailed_save" #
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
