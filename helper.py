@@ -15,6 +15,7 @@ import math
 import colorsys
 from collections import defaultdict
 import networkx as nx
+from matplotlib.patches import Circle
 
 ALPHA = 10
 
@@ -563,12 +564,8 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
 def get_fits(rules, seed_ints, metric, root, season_len, num_reps, exprapolate=True):
     vari_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     if rules[0] == rules[1]:
-            if rules[0] in [154,82,86,18]:
-                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
-                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_0_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
-            else:
-                env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_20000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
-                env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_20000_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+        env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_100000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+        env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_100000_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     else:
         print("scenario not yet implemented")
 
@@ -633,13 +630,18 @@ def main_plt(xs, ys, rules, ax):
               ys[i],
               label,
               fontsize=fontsize,
-              ha="center",
+              ha="right",
               va="bottom",
               color="black",
           )
 
-  ax.set_xlim(-0.06, 0.12)
-  ax.set_ylim(-0.06, 0.12)
+  #ax.set_xlim(-0.06, 0.12)
+  #ax.set_ylim(-0.06, 0.12)
+  #ax.set_xlim(-0.01, 0.01)
+  #ax.set_ylim(-0.01, 0.01)
+  #plt.gca().set_aspect('equal', adjustable='box')
+  circle = Circle((0, 0), 0.01, color='blue', fill=True, linewidth=0, alpha = 0.2)
+  plt.gca().add_patch(circle)
   ax.axvline(0, lw=1, color="black")
   ax.axhline(0, lw=1, color="black")
   ax.set_xlabel("Max fit of variable - Max fit of static T1",fontsize=22)
@@ -665,10 +667,7 @@ def try_grn(variable, rule, run_seedints, try_seedints, grn_size, geneid, root, 
         if variable:
             filename = f"{root}/stats_300_{rule}-{rule}_{run_seedints[0]}-{run_seedints[1]}_{i+1}" + "_best_grn.txt"
         else:
-            if rule in [154,82,86,18]:
-                filename = f"results_new_rules/stats_0_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt"
-            else:
-                filename = f"results_new_rules/stats_600_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt"
+            filename = f"results_new_rules/stats_100000_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt"
         grns = np.loadtxt(filename)
         num_grns = int(grns.shape[0]/(grn_size+2)/grn_size)
         grns = grns.reshape(num_grns,grn_size+2,grn_size)
@@ -891,4 +890,31 @@ plt.xlim(0,1)
 plt.ylim(0,1)
 plt.gca().set_aspect('equal', adjustable='box')
 plt.show()
+'''
+
+'''
+Renaming
+for file in stats_*; do mv "$file" "${file/env_seeded_0_/}"; done
+
+for file in stats_300_*_*_*; do mv "$file" "$(echo "$file" | sed -E 's/(stats_[0-9]+)_([0-9]+)_/\1_\2-\2_/')"; done
+
+for file in *0-0*.txt; do mv "$file" "${file//0-0/102-102}"; done
+
+for file in *1-1*.txt; do mv "$file" "${file//1-1/150-150}"; done
+
+for file in *2-2*.txt; do mv "$file" "${file//2-2/90-90}"; done
+
+for file in *0.5*.txt; do mv "$file" "${file//0.5/69904-149796}"; done
+
+for file in stats_300_*-*_5_[0-9]*.txt; do mv "$file" "$(echo "$file" | sed -E 's/_5_([0-9])/_69904-149796_\1/')"; done
+
+for file in stats_100000_*_5_[0-9]*.txt; do mv "$file" "$(echo "$file" | sed -E 's/_5_([0-9])/_69904_\1/')"; done
+
+for file in stats_100000_*_6_[0-9]*.txt; do mv "$file" "$(echo "$file" | sed -E 's/_6_([0-9])/_149796_\1/')"; done
+
+#-----
+
+for file in *_600_*.txt; do mv "$file" "${file//_600_/_100000_}"; done
+
+for file in stats_0_*.txt; do mv "$file" "${file//stats_0_/stats_100000_}"; done
 '''

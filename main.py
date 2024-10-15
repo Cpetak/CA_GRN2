@@ -74,7 +74,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   num_genes_mutate = int((grn_size + 2) * grn_size * tot_children * mut_rate)
 
   #Creating population
-  start_from_file = True
+  start_from_file = False
   extension_id = 1
   if start_from_file:
     pop_from_file = np.loadtxt(filename+"_last_pop.txt")
@@ -221,7 +221,7 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=20, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
   parser.add_argument('--season_len', type=int, default=20000, help="season length")
 
@@ -237,11 +237,11 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "results_testing_saving2" #"~/scratch/detailed_save" #
+  folder_name = "~/scratch/detailed_save"
   folder = helper.prepare_run(folder_name)
   args.folder = folder
 
-  args.num_cells = args.dev_steps
+  #args.num_cells = args.dev_steps
 
   #Make sure that user provided a rule and a seed for each alternative environment
   assert len(args.rules) == len(args.seed_ints), f"Num rules {len(args.rules)} != num seeds {len(args.seed_ints)}"
