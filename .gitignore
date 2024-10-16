@@ -8,3 +8,4 @@ all_rules_1hot_static/
 final_results_all
 Sbatch*
 experiment_seeds.txt
+ignore

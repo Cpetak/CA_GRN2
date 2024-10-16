@@ -815,7 +815,8 @@ def make_network(num_gens_show, pop_size, edges):
                 if edges[i][0] in mydic[k]:
                     mydic[k].append(edges[i][1])
 
-    colors = generate_colors(pop_size)
+    #colors = generate_colors(pop_size)
+    colors = list(range(pop_size))
     node_colors = []
     for c in colors:
         node_colors.append(c) #colors for the first generation
