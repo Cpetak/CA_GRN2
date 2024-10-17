@@ -1,5 +1,5 @@
-for rule in 70 #154 82 86 18 #122 70 118 #22 126 146 #154 82 86 18 118 122 70
-do
-  sbatch launcher two $rule $rule 69904 149796
+for rule in 22 126 154 18 122 70 54 94 30 50 62 110 90 150 102
+  do
+  sbatch launcher two $rule $rule 149796 69904 
   sleep 0.1
 done
