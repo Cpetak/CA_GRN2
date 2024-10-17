@@ -10,8 +10,8 @@ import helper
 def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, mylambda, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
-  mut_blast = True 
-  fit_blast = False
+  mut_blast = False
+  fit_blast = True
 
   rules_str=''.join(str(num) for num in rules)
   seedints_str=''.join(str(num) for num in seed_ints)
@@ -258,7 +258,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = Path("~/scratch/detailed_save/mut_blast").expanduser()
+  folder_name = Path("~/scratch/detailed_save/fit_blast").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 

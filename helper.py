@@ -562,10 +562,10 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
   return target, phenos, fitnesses
 
 def get_fits(rules, seed_ints, metric, root, season_len, num_reps, exprapolate=True):
-    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"variable/stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     if rules[0] == rules[1]:
-        env1_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_100000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
-        env2_maxs=[np.loadtxt(os.path.expanduser(root+f"stats_100000_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+        env1_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+        env2_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     else:
         print("scenario not yet implemented")
 
