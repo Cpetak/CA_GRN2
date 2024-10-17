@@ -10,6 +10,9 @@ import helper
 def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, mylambda, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
+  mut_blast = True 
+  fit_blast = True
+
   rules_str=''.join(str(num) for num in rules)
   seedints_str=''.join(str(num) for num in seed_ints)
   mut_rate_str = str(mut_rate)[0] + str(mut_rate)[-1]
@@ -20,9 +23,15 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   #Set seed for random
   rand_seed_str = str(pop_size)+str(grn_size)+str(num_cells)+str(dev_steps)+mut_rate_str+mut_size_str+selection_prop_str+str(season_len)+rules_str+seedints_str+str(job_array_id)
   print(int(rand_seed_str))
+  
+  if mut_blast:
+    rand_seed_str = rand_seed_str + "1"
+  if fit_blast:
+    rand_seed_str = rand_seed_str + "2"
+
   rand_seed = helper.map_to_range(int(rand_seed_str))
   print(rand_seed)
-  
+
   np.random.seed(rand_seed)
 
   with open("experiment_seeds.txt", 'a') as f:
@@ -91,6 +100,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   else:
     pop = np.random.randn(pop_size, grn_size+2, grn_size).astype(np.float64)
 
+  season_counter = 0
   # Main for loop
   for gen in trange(num_generations):
 
@@ -116,7 +126,11 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     #Calculating fitnesses
     fitnesses = []
     for target in targets:
-      temp_fitnesses = helper.fitness_function_ca(p, target)
+      if fit_blast and season_counter < 3:
+        rand_target = np.random.rand(dev_steps+1, num_cells)
+        temp_fitnesses = helper.fitness_function_ca(p, rand_target)
+      else:
+        temp_fitnesses = helper.fitness_function_ca(p, target)
       temp_fitnesses=1-(temp_fitnesses/worst) #0-1 scaling
       fitnesses.append(temp_fitnesses)
     
@@ -172,8 +186,14 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     pop[children_locs] = children  # put children into population
 
     #Change environment
+    season_counter += 1
     if gen % season_len == season_len - 1: # flip target
-      curr = (curr + 1) % len(targets)
+      season_counter = 0
+      if mut_blast:
+        mutations = np.random.randn(pop_size, (grn_size+2), grn_size)
+        pop = pop + mutations
+      else:
+        curr = (curr + 1) % len(targets)
 
     #Saving to file
     #if gen % save_freq == save_freq - 1:
@@ -214,7 +234,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
+  parser.add_argument('--pop_size', type=int, default=10, help="Population size")
   parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
@@ -222,9 +242,9 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=20, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
-  parser.add_argument('--season_len', type=int, default=100000, help="season length")
+  parser.add_argument('--season_len', type=int, default=5, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
@@ -238,7 +258,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = Path("~/scratch/detailed_save/static").expanduser()
+  folder_name = "ignore" #Path("~/scratch/detailed_save/static").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 
