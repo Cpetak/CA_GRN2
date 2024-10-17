@@ -1,6 +1,7 @@
 import numpy as np
 import argparse
 from tqdm import trange
+from pathlib import Path
 
 import helper
 
@@ -223,9 +224,9 @@ if __name__ == "__main__":
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
   parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
-  parser.add_argument('--season_len', type=int, default=20000, help="season length")
+  parser.add_argument('--season_len', type=int, default=100000, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[149796,69904], help='List of seeds in base 10')
+  parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
@@ -237,9 +238,9 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "~/scratch/detailed_save"
-  folder = helper.prepare_run(folder_name)
-  args.folder = folder
+  folder_name = Path("~/scratch/detailed_save/static").expanduser()
+  #folder = helper.prepare_run(folder_name)
+  args.folder = folder_name
 
   #args.num_cells = args.dev_steps
 
