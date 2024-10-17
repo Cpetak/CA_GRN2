@@ -45,6 +45,10 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   if len(seed_ints) == 0:
     start_patterns = np.loadtxt("33_inputs.txt")
     start_patterns = np.reshape(start_patterns, (33,22)).astype(int)
+    if season_len == 100_000:
+      print(start_patterns[0])
+      start_patterns[0] = start_patterns[-1]
+      print(start_patterns[0])
     for start_pattern in start_patterns:
       seeds.append(start_pattern)
       #Make starting expression for whole population
@@ -81,7 +85,10 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   saveat = list(range(num_generations))
 
   if season_len > num_generations: #static experiment
-    filename = f"{folder}/stats_{season_len}_{rules[0]}_{seeds_ints[0]}_{job_array_id}"
+    if len(seed_ints) == 0:
+      filename = f"{folder}/stats_{season_len}_{rules_id}_eachdiff_{job_array_id}"
+    else:
+      filename = f"{folder}/stats_{season_len}_{rules[0]}_{seeds_ints[0]}_{job_array_id}"
   else:
     if len(seed_ints) == 0:
       filename = f"{folder}/stats_{season_len}_{rules_id}_eachdiff_{job_array_id}"
@@ -248,7 +255,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=10, help="Population size")
+  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
   parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
@@ -256,9 +263,9 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=20, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
-  parser.add_argument('--season_len', type=int, default=5, help="season length")
+  parser.add_argument('--season_len', type=int, default=100000, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
@@ -272,7 +279,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "ignore" #Path("~/scratch/detailed_save/mut_blast").expanduser()
+  folder_name = Path("~/scratch/detailed_save/ever_changing").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 

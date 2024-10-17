@@ -561,7 +561,7 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
 
   return target, phenos, fitnesses
 
-def get_fits(rules, seed_ints, metric, root, season_len, num_reps, exprapolate=True):
+def get_fits(rules, seed_ints, metric, root, season_len, num_reps, extrapolate=True):
     vari_maxs=[np.loadtxt(os.path.expanduser(root+f"variable/stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     if rules[0] == rules[1]:
         env1_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
@@ -569,7 +569,7 @@ def get_fits(rules, seed_ints, metric, root, season_len, num_reps, exprapolate=T
     else:
         print("scenario not yet implemented")
 
-    if exprapolate:
+    if extrapolate:
         diff_len = len(vari_maxs[0]) - len(env1_maxs[0])
         if diff_len > 1:
             env1_maxs=np.array(env1_maxs)
@@ -582,6 +582,15 @@ def get_fits(rules, seed_ints, metric, root, season_len, num_reps, exprapolate=T
             env2_maxs = np.hstack((env2_maxs, last_elements))
 
     return vari_maxs, env1_maxs, env2_maxs
+
+def get_fits_alt(rules, seed_ints, metric, root, season_len, num_reps, exp_type):
+    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"variable/stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+    
+    static_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{149796}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+        
+    special_maxs=[np.loadtxt(os.path.expanduser(root+f"{exp_type}/stats_{season_len}_{rules[0]}-{rules[1]}_{149796}-{149796}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+
+    return vari_maxs, static_maxs, special_maxs
 
 def chunker(runs, season_len = 300):
     florp = np.array(runs).mean(axis=0) # average runs
@@ -597,6 +606,22 @@ def scatter_value(variable, season1, season2, season_len):
     M_env1 = np.array(season1).mean(axis=0).max()
     M_env2 = np.array(season2).mean(axis=0).max()
     diffs = (vari_env1 - M_env1, vari_env2 - M_env2)
+    return diffs
+
+def scatter_value_alt_specfocus(variable, special, season2, season_len):
+    vari_env1, vari_env2 = chunker(variable, season_len=season_len)
+    M_special = np.array(special).mean(axis=0).max()
+    M_env2 = np.array(season2).mean(axis=0).max()
+    #diffs = (vari_env2 - M_special, vari_env2 - M_env2)
+    diffs = (M_special - vari_env2, M_special - M_env2)
+    return diffs
+
+def scatter_value_alt_varifocus(variable, special, season2, season_len):
+    vari_env1, vari_env2 = chunker(variable, season_len=season_len)
+    M_special = np.array(special).mean(axis=0).max()
+    M_env2 = np.array(season2).mean(axis=0).max()
+    diffs = (vari_env2 - M_special, vari_env2 - M_env2)
+    #diffs = (M_special - vari_env2, M_special - M_env2)
     return diffs
 
 def main_plt(xs, ys, rules, ax):
