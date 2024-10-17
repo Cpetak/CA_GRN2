@@ -11,7 +11,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 
   #Setting up
   mut_blast = True 
-  fit_blast = True
+  fit_blast = False
 
   rules_str=''.join(str(num) for num in rules)
   seedints_str=''.join(str(num) for num in seed_ints)
@@ -234,7 +234,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=10, help="Population size")
+  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
   parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
@@ -242,11 +242,11 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=20, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
-  parser.add_argument('--season_len', type=int, default=5, help="season length")
+  parser.add_argument('--season_len', type=int, default=300, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
+  parser.add_argument('--seed_ints', nargs='+', default=[149796,149796], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
@@ -258,7 +258,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = "ignore" #Path("~/scratch/detailed_save/static").expanduser()
+  folder_name = Path("~/scratch/detailed_save/mut_blast").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 
