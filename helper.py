@@ -82,7 +82,7 @@ def calc_conz_BH(all_fits, landmarks_list):
     return conz_BH, conz_BH_mean
 
 def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
-    dev_steps = 0 #NOTE: if only last dev step considered
+    #dev_steps = 0 #NOTE: if only last dev step considered
     child_phenotypes = p[children_locs] 
     # inner most list: first: first born of each parent, second: second borns of each parent, etc.
     # so it is NOT all kids of 1 parent, then the other parent, etc.
@@ -94,7 +94,7 @@ def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, nu
     # generic phenotypic variation among offspring of the same parent
 
     #looking for more sophisticated phenotypic variation:
-    if False: #NOTE: if only last dev step considered
+    if True: #NOTE: False if only last dev step considered
         reshaped2D=np.reshape(reshaped, (num_child, len(parent_locs), dev_steps+1, num_cells))
 
         values_they_should_match = reshaped2D[:,:,where_overlap[0],where_overlap[1]]
@@ -114,7 +114,7 @@ def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, nu
         best_std_id = np.argmax(combined_std)
 
         return pheno_std, np.max(combined_std), best_std_id, averaged_combined_std
-    return pheno_std
+    #return pheno_std
 
 @njit("f8[:,:](f8[:,:],i8, i8)")
 def sigmoid(x,a,c):
@@ -738,11 +738,11 @@ def chunker_plotting(run, season_len = 300):
 
 def try_grn(variable, rule, run_seedints, try_seedints, grn_size, geneid, root, num_cells, dev_steps):
     last_grns=[]
-    for i in range(5):
+    for i in range(15):
         if variable:
-            filename = f"{root}/stats_300_{rule}-{rule}_{run_seedints[0]}-{run_seedints[1]}_{i+1}" + "_best_grn.txt"
+            filename = os.path.expanduser(f"{root}/variable/stats_300_{rule}-{rule}_{run_seedints[0]}-{run_seedints[1]}_{i+1}" + "_best_grn.txt")
         else:
-            filename = f"results_new_rules/stats_100000_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt"
+            filename = os.path.expanduser(f"{root}/static/stats_100000_{rule}_{run_seedints}_{i+1}" + "_best_grn.txt")
         grns = np.loadtxt(filename)
         num_grns = int(grns.shape[0]/(grn_size+2)/grn_size)
         grns = grns.reshape(num_grns,grn_size+2,grn_size)
@@ -753,7 +753,7 @@ def try_grn(variable, rule, run_seedints, try_seedints, grn_size, geneid, root, 
     last_phenos=[]
     fits = []
     for s in try_seedints:
-        targets, phenos, fitnesses = get_pop_TPF(last_grns, len(last_grns), num_cells, grn_size, dev_steps, geneid, rule, s)
+        targets, phenos, fitnesses = get_pop_TPF(last_grns, len(last_grns), num_cells, grn_size, dev_steps, geneid, rule, s,s)
         last_phenos.append(phenos)
         fits.append(fitnesses)
     last_phenos = np.array(last_phenos)
