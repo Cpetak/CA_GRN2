@@ -82,6 +82,7 @@ def calc_conz_BH(all_fits, landmarks_list):
     return conz_BH, conz_BH_mean
 
 def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
+    dev_steps = 0 #NOTE: if only last dev step considered
     child_phenotypes = p[children_locs] 
     # inner most list: first: first born of each parent, second: second borns of each parent, etc.
     # so it is NOT all kids of 1 parent, then the other parent, etc.
@@ -93,25 +94,27 @@ def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, nu
     # generic phenotypic variation among offspring of the same parent
 
     #looking for more sophisticated phenotypic variation:
-    reshaped2D=np.reshape(reshaped, (num_child, len(parent_locs), dev_steps+1, num_cells))
+    if False: #NOTE: if only last dev step considered
+        reshaped2D=np.reshape(reshaped, (num_child, len(parent_locs), dev_steps+1, num_cells))
 
-    values_they_should_match = reshaped2D[:,:,where_overlap[0],where_overlap[1]]
-    #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they overlap
-    matching_std = np.std(values_they_should_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
-    matching_std = matching_std.mean(axis=1) #average across the N overlaps, to get 1 value for each parent
+        values_they_should_match = reshaped2D[:,:,where_overlap[0],where_overlap[1]]
+        #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they overlap
+        matching_std = np.std(values_they_should_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
+        matching_std = matching_std.mean(axis=1) #average across the N overlaps, to get 1 value for each parent
 
-    #repeat for non-overlap
-    values_they_shouldnt_match = reshaped2D[:,:,where_no_overlap[0],where_no_overlap[1]]
-    #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they don't overlap
-    nonmatching_std = np.std(values_they_shouldnt_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
-    nonmatching_std = nonmatching_std.mean(axis=1) #average across the N non overlaps, to get 1 value for each parent
+        #repeat for non-overlap
+        values_they_shouldnt_match = reshaped2D[:,:,where_no_overlap[0],where_no_overlap[1]]
+        #values_they_should_match.shape #4 kids, 2 parents, N values, where N is the number of cells where they don't overlap
+        nonmatching_std = np.std(values_they_shouldnt_match, axis=0) #among the 4 kids of 1 parent, output is an N long list for each of the 2 parents
+        nonmatching_std = nonmatching_std.mean(axis=1) #average across the N non overlaps, to get 1 value for each parent
 
-    #minimum std is 0, max is 0.5 in the case of values that range between 0 and 1
-    combined_std = nonmatching_std - matching_std
-    averaged_combined_std = np.mean(combined_std)
-    best_std_id = np.argmax(combined_std)
+        #minimum std is 0, max is 0.5 in the case of values that range between 0 and 1
+        combined_std = nonmatching_std - matching_std
+        averaged_combined_std = np.mean(combined_std)
+        best_std_id = np.argmax(combined_std)
 
-    return pheno_std, np.max(combined_std), best_std_id, averaged_combined_std
+        return pheno_std, np.max(combined_std), best_std_id, averaged_combined_std
+    return pheno_std
 
 @njit("f8[:,:](f8[:,:],i8, i8)")
 def sigmoid(x,a,c):
@@ -561,11 +564,11 @@ def get_pop_TPF_torch(pop, pop_size, num_cells, grn_size, dev_steps, geneid, rul
 
   return target, phenos, fitnesses
 
-def get_fits(rules, seed_ints, metric, root, season_len, num_reps, extrapolate=True):
-    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"variable/stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+def get_fits(rules, seed_ints, metric, root, season_len, num_reps, id_start, extrapolate=True):
+    vari_maxs=[np.loadtxt(os.path.expanduser(root+f"variable/stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1+id_start}_{metric}.txt")) for i in range(num_reps)]
     if rules[0] == rules[1]:
-        env1_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[0]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
-        env2_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+        env1_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[0]}_{i+1+id_start}_{metric}.txt")) for i in range(num_reps)]
+        env2_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{seed_ints[1]}_{i+1+id_start}_{metric}.txt")) for i in range(num_reps)]
     else:
         print("scenario not yet implemented")
 
@@ -590,23 +593,70 @@ def get_fits_alt(rules, seed_ints, metric, root, season_len, num_reps, exp_type)
         
     special_maxs=[np.loadtxt(os.path.expanduser(root+f"{exp_type}/stats_{season_len}_{rules[0]}-{rules[1]}_{149796}-{149796}_{i+1}_{metric}.txt")) for i in range(num_reps)]
 
-    return vari_maxs, static_maxs, special_maxs
+    return vari_maxs, static_maxs, special_maxs    
 
 def chunker(runs, season_len = 300):
     florp = np.array(runs).mean(axis=0) # average runs
+    all_gens = np.arange(0,np.array(runs).shape[1])
     n_seasons = int(np.floor(florp.shape[0]/season_len))
-    chunked_seasons = np.array([florp[i*300:(i+1)*300] for i in range(n_seasons)])
+    chunked_seasons = np.array([florp[i*season_len:(i+1)*season_len] for i in range(n_seasons)])
+    chunked_gens = np.array([all_gens[i*season_len:(i+1)*season_len] for i in range(n_seasons)])
     assert chunked_seasons.size == season_len * n_seasons #safety check
     chunked_season1, chunked_season2 = chunked_seasons[0::2], chunked_seasons[1::2]
+    chunked_season1_g, chunked_season2_g = chunked_gens[0::2].flatten(), chunked_gens[1::2].flatten()
+    # Get maximum for each repeat season:
     max_chunked_season1, max_chunked_season2 = chunked_season1.max(axis=1),chunked_season2.max(axis=1)
-    return max_chunked_season1.max(), max_chunked_season2.max()
+    # Get maximum among repeat seasons:
+    a = max_chunked_season1.max()
+    b = max_chunked_season2.max()
+
+    argmax1 = chunked_season1_g[np.argmax(np.array(chunked_season1))]
+    argmax2 = chunked_season2_g[np.argmax(np.array(chunked_season2))]
+    std1 = np.array(runs)[:,argmax1].std()
+    std2 = np.array(runs)[:,argmax2].std()
+
+    return a,b, std1, std2
+
+    #experimental, ave of maxs, decided against
+    #florp = np.array(runs)
+    #n_seasons = int(np.floor(florp.shape[1]/season_len))
+    #chunked_seasons = np.array([florp[:, i*season_len:(i+1)*season_len] for i in range(n_seasons)])
+    #assert (chunked_seasons.shape[0] * chunked_seasons.shape[-1]) == season_len * n_seasons #safety check
+    #chunked_season1, chunked_season2 = chunked_seasons[0::2], chunked_seasons[1::2]
+    # Get maximum for each replicate in each repeat season:
+    #max_chunked_season1, max_chunked_season2 = chunked_season1.max(axis=2),chunked_season2.max(axis=2)
+    # Get maximum for each replicate among repeat seasons, then average
+    #a = max_chunked_season1.max(axis = 0)
+    #b = max_chunked_season2.max(axis = 0)
+    #return a,b 
 
 def scatter_value(variable, season1, season2, season_len):
-    vari_env1, vari_env2 = chunker(variable, season_len=season_len)
-    M_env1 = np.array(season1).mean(axis=0).max()
-    M_env2 = np.array(season2).mean(axis=0).max()
+    vari_env1, vari_env2, std1, std2 = chunker(variable, season_len=season_len)
+    
+    season1 = np.array(season1)
+    season2 = np.array(season2)
+    M_env1 = season1.mean(axis=0).max()
+    M_env2 = season2.mean(axis=0).max()
+    env1_std = season1[:,np.argmax(season1.mean(axis=0))].std()
+    env2_std = season2[:,np.argmax(season2.mean(axis=0))].std()
+    
+    cohen_d1 = (vari_env1- M_env1) / np.sqrt((std1+env1_std)/2)
+    cohen_d2 = (vari_env2- M_env2) / np.sqrt((std2+env2_std)/2)
+
     diffs = (vari_env1 - M_env1, vari_env2 - M_env2)
-    return diffs
+    return diffs, (cohen_d1, cohen_d2)
+
+    #experimental, decided against
+    #vari_env1, vari_env2 = chunker(variable, season_len=season_len)
+    #M_env1 = np.array(season1).max(axis=1)
+    #M_env2 = np.array(season2).max(axis=1)
+    #cohen_d1 = (vari_env1.mean()- M_env1.mean()) / np.sqrt((vari_env1.std()+M_env1.std())/2)
+    #cohen_d2 = (vari_env2.mean()- M_env2.mean()) / np.sqrt((vari_env2.std()+M_env2.std())/2)
+    #CI_1 = [(vari_env1.mean()- M_env1.mean()) + z * np.sqrt(((vari_env1.std()/len(vari_env1))+(M_env1.std()/len(M_env1)))) for z in [1.96, -1.96] ]
+    #CI_2 = [(vari_env2.mean()- M_env2.mean()) + z * np.sqrt(((vari_env2.std()/len(vari_env2))+(M_env2.std()/len(M_env2)))) for z in [1.96, -1.96] ]
+    #diffs = (vari_env1.mean() - M_env1.mean(), vari_env2.mean() - M_env2.mean())
+    #return diffs, cohen_d1, cohen_d2
+    
 
 def scatter_value_alt_specfocus(variable, special, season2, season_len):
     vari_env1, vari_env2 = chunker(variable, season_len=season_len)

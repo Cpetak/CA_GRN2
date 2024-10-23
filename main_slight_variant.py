@@ -10,7 +10,7 @@ import helper
 def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, mylambda, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
-  job_array_id = job_array_id + 10
+  #job_array_id = job_array_id + 10
   mut_blast = False
   fit_blast = False
 
@@ -62,6 +62,12 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   where_overlap = np.where(targets[0]==targets[1])
   where_no_overlap = np.where(targets[0]!=targets[1])
 
+  #Last step only experiments
+  t1 = np.zeros(num_cells)
+  t1[:int(num_cells/2)] = 1.0
+  t2 = 1 - t1
+  targets = [t1, t2] #NOTE: if only last dev step considered
+
   #Logging
   max_fits = []
   ave_fits = []
@@ -79,8 +85,9 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   #Defining variables
   curr = 0
   worst= -num_cells*dev_steps #(dev_steps+1) if rerunning everything. bug but not important
+  worst= -num_cells #NOTE: if only last dev step considered
   selection_size=int(pop_size*selection_prop)
-  num_child = int(pop_size / selection_size) - 1
+  num_child = int(pop_size / selection_size) - 1 + 1 #NOTE: +1 if parents are not kept
   tot_children = num_child * selection_size
   num_genes_mutate = int((grn_size + 2) * grn_size * tot_children * mut_rate)
 
@@ -110,7 +117,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     phenos = helper.develop(inputs[curr], pop, dev_steps, pop_size, grn_size, num_cells)
     #get second gene for each cell only, the one I decided will matter for the fitness
     #pop_size, dev_steps, NCxNG
-    p=phenos[:,:,1::grn_size]
+    p=phenos[:,-1,1::grn_size] #NOTE: -1 in second dim if only last dev step considered
 
     # Logging phenotypic variation
     if gen > 0:
@@ -118,11 +125,12 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       geno_std = np.std(temp_pop, axis=0).mean() #calc std for each weight in the pop, then average
       geno_stds.append(geno_std)
 
-      pheno_std, best_std_val, best_std_id, averaged_combined_std = helper.calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap)
-      pheno_stds.append(pheno_std)
-      best_std.append(best_std_val)
-      spec_pheno_stds.append(averaged_combined_std)
-      best_std_grn = pop[parent_locs[best_std_id]]
+      #pheno_std, best_std_val, best_std_id, averaged_combined_std = helper.calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap)
+      pheno_std = helper.calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap)
+      pheno_stds.append(pheno_std) 
+      #best_std.append(best_std_val) #NOTE: if only last dev step considered
+      #spec_pheno_stds.append(averaged_combined_std)
+      #best_std_grn = pop[parent_locs[best_std_id]]
 
     #Calculating fitnesses
     fitnesses = []
@@ -131,7 +139,8 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
         rand_target = np.random.rand(dev_steps+1, num_cells)
         temp_fitnesses = helper.fitness_function_ca(p, rand_target)
       else:
-        temp_fitnesses = helper.fitness_function_ca(p, target)
+        #temp_fitnesses = helper.fitness_function_ca(p, target) 
+        temp_fitnesses = -np.abs(p - target).sum(axis=1) #NOTE: if only last dev step considered
       temp_fitnesses=1-(temp_fitnesses/worst) #0-1 scaling
       fitnesses.append(temp_fitnesses)
     
@@ -157,13 +166,13 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     # location of top x parents in the array of individuals
     parent_locs = perm[:selection_size]
     # location of individuals that won't survive and hence will be replaced by others' children
-    children_locs = perm[selection_size:]
+    children_locs = perm[:] #NOTE: perm[selection_size:] if parents are kept
 
     # Logging lineages, forward pointing. 
     # this generation, these are the parents, this is where their kids will go
     edges = []
-    for p in parent_locs:
-      edges.append([(gen,p),(gen+1,p)]) 
+    #for p in parent_locs:
+      #edges.append([(gen,p),(gen+1,p)]) #NOTE: comment out if parents are kept
       #each parent stays in the population where it was
     for idx, p in enumerate(np.tile(parent_locs,num_child)):
       #np tile makes it so that it is parent 1, parent 2, parent 1, parent 2, etc.
@@ -207,7 +216,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
       save_edges=np.reshape(save_edges, (pop_size,4))
       with open(filename+"_edges.txt", 'a') as f:
         np.savetxt(f, save_edges, newline=" ")
-      if gen > 0:
+      if False: #gen > 0: #NOTE: if only last dev step considered
         with open(filename+"_best_grn_std.txt", 'a') as f:
           np.savetxt(f, best_std_grn, newline=" ")
 
@@ -235,7 +244,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
+  parser.add_argument('--pop_size', type=int, default=10, help="Population size")
   parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
   parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
   parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
@@ -243,9 +252,9 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=3, help="Number of generations") #19799
   parser.add_argument('--mylambda', type=float, default = 0.1, help="lambda for L1 or L2 regularization")
-  parser.add_argument('--season_len', type=int, default=100000, help="season length")
+  parser.add_argument('--season_len', type=int, default=300, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
@@ -259,7 +268,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = Path("~/scratch/detailed_save/static").expanduser()
+  folder_name = Path("~/scratch/detailed_save/temp").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 
