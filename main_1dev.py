@@ -64,9 +64,11 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 
   #Last step only experiments
   t1 = np.zeros(num_cells)
-  t1[:int(num_cells/2)] = 1.0
+  #t1[:int(num_cells/2)] = 1.0
+  t1[::2] = 1.0
   t2 = 1 - t1
   targets = [t1, t2] #NOTE: if only last dev step considered
+  print(t1,t2)
 
   #Logging
   max_fits = []
@@ -78,9 +80,9 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   saveat = list(range(num_generations))
 
   if season_len > num_generations: #static experiment
-    filename = f"{folder}/stats_{season_len}_{rules[0]}_{seeds_ints[0]}_{job_array_id}"
+    filename = f"{folder}/stats_{season_len}_{rules[0]}_{seeds_ints[0]}_01_{job_array_id}"
   else:
-    filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_{job_array_id}"
+    filename = f"{folder}/stats_{season_len}_{rules_id}_{seeds_id}_01_{job_array_id}"
 
   #Defining variables
   curr = 0
