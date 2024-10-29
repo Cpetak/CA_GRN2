@@ -78,7 +78,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
 
   #Defining variables
   curr = 0
-  worst= -num_cells*dev_steps #(dev_steps+1) if rerunning everything. bug but not important
+  worst= -num_cells*dev_steps #not a bug because you are getting the first row good for sure
   selection_size=int(pop_size*selection_prop)
   num_child = int(pop_size / selection_size) - 1
   tot_children = num_child * selection_size

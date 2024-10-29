@@ -2,8 +2,53 @@ import os
 import argparse
 import numpy as np
 from pathlib import Path
+from dataclasses import dataclass, asdict
+from typing import List
+from typing import Any
+import json
+import re
+from tqdm import tqdm
 
 import helper
+
+@dataclass
+class GRNFileInfo:
+    """Store parsed information from a GRN results filename."""
+
+    iterations: int
+    rules: List[int]
+    seeds: List[int]
+    repetition: int
+    filename: str
+
+class GRNFilenameParser:
+    @staticmethod
+    def parse(filename: Path) -> GRNFileInfo:
+        filename_str = filename.as_posix()
+
+        # Try the complex format first (with paired numbers)
+        complex_pattern = r"stats_(\d+)_(\d+-\d+)_(\d+-\d+)_(\d+)_best_grn\.txt$"
+        complex_match = re.search(complex_pattern, filename_str)
+
+        if complex_match:
+            iterations = int(complex_match.group(1))
+            rules = [int(x) for x in complex_match.group(2).split("-")]
+            seeds = [int(x) for x in complex_match.group(3).split("-")]
+            repetition = int(complex_match.group(4))
+            return GRNFileInfo(iterations, rules, seeds, repetition, filename_str)
+
+        # Try the simple format
+        simple_pattern = r"stats_(\d+)_(\d+)_(\d+)_(\d+)_best_grn\.txt$"
+        simple_match = re.search(simple_pattern, filename_str)
+
+        if simple_match:
+            iterations = int(simple_match.group(1))
+            rules = [int(simple_match.group(2))]
+            seeds = [int(simple_match.group(3))]
+            repetition = int(simple_match.group(4))
+            return GRNFileInfo(iterations, rules, seeds, repetition, filename_str)
+
+        raise ValueError(f"Unrecognized filename format: {filename}")
 
 class JSONLogger:
     def __init__(self, filepath: str):
@@ -21,9 +66,9 @@ class JSONLogger:
         return results
 
 def score(phenos, target):
-    # TODO: phenos has shape 100, 23, 22 sooo... (23 - 1) = 22 dev_steps?
+    # TODO: phenos has shape 100, 23, 22 sooo... (23 - 1) = 22 dev_steps? yes because first row is good for sure so dev_step should be 22 in worst calculation
     _, dev_steps, num_cells = phenos.shape
-    worst = -num_cells * (dev_steps - 1)
+    worst = -num_cells * (dev_steps -1)
     prefitnesses = helper.fitness_function_ca(phenos, target)
     fitnesses = 1 - (prefitnesses / worst)  # 0-1 scaling
     return fitnesses
@@ -38,51 +83,42 @@ def explore_noise(filename, seed, rule, noise_scaling, candidate_idx, grn_size =
     noise = np.random.randn(*clones.shape) * noise_scaling
     clones += noise
     clones[0] = candidate
-    target, phenos = helper.get_pop_TPF(
+    target, phenos, fitnesses = helper.get_pop_TPF(
         clones, len(clones), num_cells, grn_size, dev_steps, geneid, rule, seed, seed
     )
-    fitnesses = score(phenos, target)
+    #fitnesses = score(phenos, target)
     return phenos, target, fitnesses
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('--pop_size', type=int, default=1000, help="Population size")
-    parser.add_argument('--grn_size', type=int, default=22, help="GRN size") 
-    parser.add_argument('--num_cells', type=int, default=22, help="Number of cells") 
-    parser.add_argument('--dev_steps', type=int, default=22, help="Number of developmental steps") 
-
-    parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
-    parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
-    parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-    parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
     
-    parser.add_argument('--season_len', type=int, default=100000, help="season length")
-    parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
-    parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
-
-    parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
+    parser.add_argument('--rule', type=int, default=30, help='List of rules')    
     parser.add_argument('--exp_type', type=str, default="variable", help="Variable or static")
+    parser.add_argument('--candidate_idx', type=str, default="-1", help="Which generation to check")
 
     args = parser.parse_args()
-    root="~/scratch/detailed_save/"
 
     if args.exp_type == "variable":
-        filename = os.path.expanduser(f"{root}/variable/stats_{args.season_len}_{args.rules[0]}-{args.rules[0]}_{args.seed_ints[0]}-{args.seed_ints[1]}_{args.job_array_id}_best_grn.txt")
+        args.season_len = 300
     else:
-        filename = os.path.expanduser(f"{root}/static/stats_{args.season_len}_{args.rules[0]}_{args.seed_ints[0]}_{args.job_array_id}_best_grn.txt")
+        args.season_len = 100_000
 
-    rule = args.rules[0]
-    nrows = 20
-    nclones = nrows * nrows
-    phenos, target, fitnesses = explore_noise(
-        filename, seed=args.seed_ints[0], noise_scaling=0.5, rule=rule, nclones=nrows * nrows
-    )
+    root="~/scratch/detailed_save/"
+    dir_path = Path(f"~/scratch/detailed_save/{args.exp_type}/").expanduser()
+    print(dir_path)
 
-    M = 0.3
-    N = 20
-    log = JSONLogger("noise_data.jsonl")
+    print(args.season_len, args.rule)
+    files = [file for file in dir_path.iterdir() if file.is_file() and file.name.startswith(f"stats_{args.season_len}_{args.rule}") and file.name.endswith("_best_grn.txt")]
+    out_filename = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_noise_data.jsonl")
+    print(files)
+
+    M = 0.3 #max noise
+    N = 20 #number of noise levels to test
+    nrows = 100 #x**2 is number of clones
+    log = JSONLogger(out_filename)
+
     for filename in tqdm(files, position=0):
+        print(filename)
         params = GRNFilenameParser.parse(filename)
         data = []
         noise_levels = np.linspace(0, M, N).tolist()
@@ -91,6 +127,7 @@ if __name__ == "__main__":
                 filename,
                 seed=params.seeds[0],
                 noise_scaling=noise_scaling,
+                candidate_idx = int(args.candidate_idx),
                 rule=params.rules[0],
                 nclones=nrows * nrows,
             )
