@@ -29,4 +29,4 @@ echo "rule: $1"
 echo "exp_type: $2"
 echo "candidate_idx: $3"
 
-python noisify_grn_random.py --rule $1 --exp_type $2 --candidate_idx $3
+python noisify_grn.py --rule $1 --exp_type $2 --candidate_idx $3

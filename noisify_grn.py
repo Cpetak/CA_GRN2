@@ -65,15 +65,7 @@ class JSONLogger:
             results = [json.loads(line) for line in f]
         return results
 
-def score(phenos, target):
-    # TODO: phenos has shape 100, 23, 22 sooo... (23 - 1) = 22 dev_steps? yes because first row is good for sure so dev_step should be 22 in worst calculation
-    _, dev_steps, num_cells = phenos.shape
-    worst = -num_cells * (dev_steps -1)
-    prefitnesses = helper.fitness_function_ca(phenos, target)
-    fitnesses = 1 - (prefitnesses / worst)  # 0-1 scaling
-    return fitnesses
-
-def explore_noise(filename, seed, rule, noise_scaling, candidate_idx, grn_size = 22, num_cells = 22, dev_steps = 22, geneid=1, nclones=1000):
+def explore_noise(filename, seeds, rule, noise_scaling, candidate_idx, grn_size = 22, num_cells = 22, dev_steps = 22, geneid=1, nclones=1000):
     grns = np.loadtxt(filename)
     num_grns = int(grns.shape[0] / (grn_size + 2) / grn_size)
     grns = grns.reshape(num_grns, grn_size + 2, grn_size)
@@ -83,11 +75,14 @@ def explore_noise(filename, seed, rule, noise_scaling, candidate_idx, grn_size =
     noise = np.random.randn(*clones.shape) * noise_scaling
     clones += noise
     clones[0] = candidate
-    target, phenos, fitnesses = helper.get_pop_TPF(
-        clones, len(clones), num_cells, grn_size, dev_steps, geneid, rule, seed, seed
+    target1, phenos1, fitnesses1 = helper.get_pop_TPF(
+        clones, len(clones), num_cells, grn_size, dev_steps, geneid, rule, seeds[0], seeds[0]
+    )
+    target2, phenos2, fitnesses2 = helper.get_pop_TPF(
+        clones, len(clones), num_cells, grn_size, dev_steps, geneid, rule, seeds[1], seeds[1]
     )
     #fitnesses = score(phenos, target)
-    return phenos, target, fitnesses
+    return [phenos1,phenos2], [target1,target2], [fitnesses1,fitnesses2]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -105,37 +100,49 @@ if __name__ == "__main__":
 
     root="~/scratch/detailed_save/"
     dir_path = Path(f"~/scratch/detailed_save/{args.exp_type}/").expanduser()
-    print(dir_path)
 
-    print(args.season_len, args.rule)
     files = [file for file in dir_path.iterdir() if file.is_file() and file.name.startswith(f"stats_{args.season_len}_{args.rule}") and file.name.endswith("_best_grn.txt")]
-    out_filename = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_noise_data.jsonl")
-    print(files)
-
+    
     M = 0.3 #max noise
     N = 20 #number of noise levels to test
-    nrows = 100 #x**2 is number of clones
-    log = JSONLogger(out_filename)
+    nrows = 50 #x**2 is number of clones
+
+    out_filename1 = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env1_noise_data.jsonl")
+    out_filename2 = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env2_noise_data.jsonl")
+
+    log1 = JSONLogger(out_filename1)
+    log2 = JSONLogger(out_filename2)
 
     for filename in tqdm(files, position=0):
         print(filename)
         params = GRNFilenameParser.parse(filename)
-        data = []
+        data1 = []
+        data2 = []
         noise_levels = np.linspace(0, M, N).tolist()
         for noise_scaling in tqdm(noise_levels, position=1, leave=False):
             phenos, target, fitnesses = explore_noise(
                 filename,
-                seed=params.seeds[0],
+                seeds=params.seeds,
                 noise_scaling=noise_scaling,
                 candidate_idx = int(args.candidate_idx),
                 rule=params.rules[0],
                 nclones=nrows * nrows,
             )
-            data.append(np.sort(fitnesses).tolist())
-        to_log = {
+            data1.append(np.sort(fitnesses[0]).tolist())
+            data2.append(np.sort(fitnesses[1]).tolist())
+        to_log1 = {
             "file": filename.as_posix(),
             "params": asdict(params),
-            "data": data,
+            "data": data1,
             "noise_levels": noise_levels,
+            "env": 0
         }
-        log.append(to_log)
+        to_log2 = {
+            "file": filename.as_posix(),
+            "params": asdict(params),
+            "data": data2,
+            "noise_levels": noise_levels,
+            "env": 1
+        }
+        log1.append(to_log1)
+        log2.append(to_log2)
