@@ -107,8 +107,8 @@ if __name__ == "__main__":
     N = 20 #number of noise levels to test
     nrows = 50 #x**2 is number of clones
 
-    out_filename1 = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env1_noise_data.jsonl")
-    out_filename2 = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env2_noise_data.jsonl")
+    out_filename1 = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env1_unsorted_noise_data.jsonl")
+    out_filename2 = os.path.expanduser(f"{root}/noise_results/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env2_unsorted_noise_data.jsonl")
 
     log1 = JSONLogger(out_filename1)
     log2 = JSONLogger(out_filename2)
@@ -128,8 +128,10 @@ if __name__ == "__main__":
                 rule=params.rules[0],
                 nclones=nrows * nrows,
             )
-            data1.append(np.sort(fitnesses[0]).tolist())
-            data2.append(np.sort(fitnesses[1]).tolist())
+            #data1.append(np.sort(fitnesses[0]).tolist())
+            #data2.append(np.sort(fitnesses[1]).tolist())
+            data1.append(fitnesses[0].tolist())
+            data2.append(fitnesses[1].tolist())
         to_log1 = {
             "file": filename.as_posix(),
             "params": asdict(params),
