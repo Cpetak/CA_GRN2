@@ -14,7 +14,7 @@ import os
 import math
 import colorsys
 from collections import defaultdict
-import networkx as nx
+#import networkx as nx
 from matplotlib.patches import Circle
 
 ALPHA = 10
@@ -644,7 +644,7 @@ def scatter_value(variable, season1, season2, season_len):
     cohen_d2 = (vari_env2- M_env2) / np.sqrt((std2+env2_std)/2)
 
     diffs = (vari_env1 - M_env1, vari_env2 - M_env2)
-    return diffs, (cohen_d1, cohen_d2)
+    return diffs, (cohen_d1, cohen_d2), (env1_std, env2_std)
 
     #experimental, decided against
     #vari_env1, vari_env2 = chunker(variable, season_len=season_len)

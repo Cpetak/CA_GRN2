@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #Specify a partition
-#SBATCH --partition=short
+#SBATCH --partition=bluemoon
 # Request nodes
 #SBATCH --nodes=1
 # Request some processor cores
@@ -11,7 +11,7 @@
 # Request memory
 #SBATCH --mem=40G
 # Run for five minutes
-#SBATCH --time=03:00:00
+#SBATCH --time=01:00:00
 # Name job
 #SBATCH --job-name=SbatchJob
 # Name output file

@@ -16,7 +16,7 @@
 #SBATCH --job-name=SbatchJob
 # Name output file
 #SBATCH --output=%x_%j.out
-#SBATCH --array=1-3
+#SBATCH --array=1-10
 
 # change to the directory where you submitted this script
 cd ${SLURM_SUBMIT_DIR}
@@ -35,7 +35,7 @@ echo "seed: $3"
 
 if [ $1 == "one" ]; then
 
-  python main_stripped.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $2 $2 --seed_ints $3 $3 #--num_generations 3000
+  python main_stripped.py --job_array_id ${SLURM_ARRAY_TASK_ID} --rules $2 $2 #--seed_ints $3 $3 #--num_generations 3000
 
 elif [ $1 == "two" ]; then
 

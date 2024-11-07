@@ -7,9 +7,10 @@ import helper
 
 """#Evolutionary algorythm"""
 
-def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, mylambda, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
+def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
+  job_array_id = job_array_id + 5
 
   #Creating start expression pattern
   geneid = 1
@@ -126,9 +127,9 @@ if __name__ == "__main__":
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
   parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
-  parser.add_argument('--season_len', type=int, default=100000, help="season length")
+  parser.add_argument('--season_len', type=int, default=300, help="season length")
 
-  parser.add_argument('--seed_ints', nargs='+', default=[69904,149796], help='List of seeds in base 10')
+  parser.add_argument('--seed_ints', nargs='+', default=[4147842,1238860], help='List of seeds in base 10')
   parser.add_argument('--rules', nargs='+', default=[30,30], help='List of rules')
 
   parser.add_argument('--job_array_id', type=int, default=0, help="Job array id to distinguish runs")
@@ -140,7 +141,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = Path("~/scratch/non_detailed_save/static").expanduser()
+  folder_name = Path("~/scratch/non_detailed_save/variable").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 
