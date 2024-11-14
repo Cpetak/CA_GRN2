@@ -10,19 +10,35 @@ import helper
 def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, num_generations, selection_prop, rules, mut_size, folder, seed_ints, season_len, job_array_id):
 
   #Setting up
-  job_array_id = job_array_id + 5
+  #job_array_id = job_array_id + 5
 
   #Creating start expression pattern
   geneid = 1
   seeds=[]
   inputs=[]
-  for seed_int in seed_ints:
-    #Make seeds, 1024 is one-hot
-    start_pattern = helper.seedID2string(seed_int, num_cells)
-    seeds.append(start_pattern)
-    #Make starting expression for whole population
-    start_expression = helper.seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
-    inputs.append(start_expression)
+
+  random_seed = True
+  #seed_ints = [0,1] #index of input in the 100 inputs file
+  print(seed_ints)
+
+  if random_seed:
+      start_patterns = np.loadtxt("100_inputs.txt")
+      start_patterns = np.reshape(start_patterns, (100,22)).astype(int)
+      for seed_int in seed_ints:
+        print(seed_int)
+        seeds.append(start_patterns[int(seed_int),:])
+        start_expression = helper.seed2expression(start_patterns[int(seed_int),:], pop_size, num_cells, grn_size, geneid)
+        inputs.append(start_expression)
+  else:
+    for seed_int in seed_ints:
+      #Make seeds, 1024 is one-hot
+      start_pattern = helper.seedID2string(seed_int, num_cells)
+      seeds.append(start_pattern)
+      #Make starting expression for whole population
+      start_expression = helper.seed2expression(start_pattern, pop_size, num_cells, grn_size, geneid)
+      inputs.append(start_expression)
+
+  print(seeds)
 
   #Creating targets
   targets=[]
@@ -141,7 +157,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = Path("~/scratch/non_detailed_save/variable").expanduser()
+  folder_name = Path("~/scratch/non_detailed_save/extra_inputs/static").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 

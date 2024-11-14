@@ -16,6 +16,7 @@ import colorsys
 from collections import defaultdict
 #import networkx as nx
 from matplotlib.patches import Circle
+from scipy.stats import ttest_ind
 
 ALPHA = 10
 
@@ -615,7 +616,7 @@ def chunker(runs, season_len = 300):
     std1 = np.array(runs)[:,argmax1].std()
     std2 = np.array(runs)[:,argmax2].std()
 
-    return a,b, std1, std2
+    return a,b, std1, std2, np.array(runs)[:,argmax1], np.array(runs)[:,argmax2]
 
     #experimental, ave of maxs, decided against
     #florp = np.array(runs)
@@ -631,20 +632,26 @@ def chunker(runs, season_len = 300):
     #return a,b 
 
 def scatter_value(variable, season1, season2, season_len):
-    vari_env1, vari_env2, std1, std2 = chunker(variable, season_len=season_len)
+    vari_env1, vari_env2, std1, std2, list1, list2 = chunker(variable, season_len=season_len)
     
     season1 = np.array(season1)
     season2 = np.array(season2)
     M_env1 = season1.mean(axis=0).max()
     M_env2 = season2.mean(axis=0).max()
-    env1_std = season1[:,np.argmax(season1.mean(axis=0))].std()
-    env2_std = season2[:,np.argmax(season2.mean(axis=0))].std()
+    static1 = season1[:,np.argmax(season1.mean(axis=0))]
+    env1_std = static1.std()
+    static2 = season2[:,np.argmax(season2.mean(axis=0))]
+    env2_std = static2.std()
     
     cohen_d1 = (vari_env1- M_env1) / np.sqrt((std1+env1_std)/2)
     cohen_d2 = (vari_env2- M_env2) / np.sqrt((std2+env2_std)/2)
 
+    t_stat1, p_value1 = ttest_ind(list1, static1)
+    t_stat2, p_value2 = ttest_ind(list2, static2)
+
+
     diffs = (vari_env1 - M_env1, vari_env2 - M_env2)
-    return diffs, (cohen_d1, cohen_d2), (env1_std, env2_std)
+    return diffs, (cohen_d1, cohen_d2), (p_value1,p_value2), (list1, list2, static1, static2)
 
     #experimental, decided against
     #vari_env1, vari_env2 = chunker(variable, season_len=season_len)

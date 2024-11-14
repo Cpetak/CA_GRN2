@@ -1,9 +1,9 @@
 import numpy as np
 
-np.random.seed(42)
+np.random.seed(44) #42 for 33 inputs
 
 num_ones = 11
-starts = np.zeros((33, 22))
+starts = np.zeros((100, 22))
 
 c = 0
 while sum(starts[-1,:]) == 0:
@@ -26,5 +26,5 @@ for i1, s1 in enumerate(starts):
       if i1 != i2:
         print(i1, i2)
 
-with open("33_inputs.txt", 'w') as f:
+with open("100_inputs.txt", 'w') as f:
     np.savetxt(f, starts, newline=" ")
