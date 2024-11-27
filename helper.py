@@ -83,7 +83,7 @@ def calc_conz_BH(all_fits, landmarks_list):
     return conz_BH, conz_BH_mean
 
 def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, num_cells, where_overlap, where_no_overlap):
-    dev_steps = 0 #NOTE: if only last dev step considered
+    #dev_steps = 0 #NOTE: if only last dev step considered
     child_phenotypes = p[children_locs] 
     # inner most list: first: first born of each parent, second: second borns of each parent, etc.
     # so it is NOT all kids of 1 parent, then the other parent, etc.
@@ -95,7 +95,7 @@ def calc_pheno_variation(p, children_locs, num_child, parent_locs, dev_steps, nu
     # generic phenotypic variation among offspring of the same parent
 
     #looking for more sophisticated phenotypic variation:
-    if False: #NOTE: False if only last dev step considered
+    if True: #NOTE: False if only last dev step considered
         reshaped2D=np.reshape(reshaped, (num_child, len(parent_locs), dev_steps+1, num_cells))
 
         values_they_should_match = reshaped2D[:,:,where_overlap[0],where_overlap[1]]
