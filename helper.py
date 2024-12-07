@@ -666,7 +666,7 @@ def scatter_value(variable, season1, season2, season_len):
     
 
 def scatter_value_alt_specfocus(variable, special, season2, season_len):
-    vari_env1, vari_env2 = chunker(variable, season_len=season_len)
+    vari_env1, vari_env2, std1, std2, list1, list2 = chunker(variable, season_len=season_len)
     M_special = np.array(special).mean(axis=0).max()
     M_env2 = np.array(season2).mean(axis=0).max()
     #diffs = (vari_env2 - M_special, vari_env2 - M_env2)
@@ -674,7 +674,7 @@ def scatter_value_alt_specfocus(variable, special, season2, season_len):
     return diffs
 
 def scatter_value_alt_varifocus(variable, special, season2, season_len):
-    vari_env1, vari_env2 = chunker(variable, season_len=season_len)
+    vari_env1, vari_env2, std1, std2, list1, list2 = chunker(variable, season_len=season_len)
     M_special = np.array(special).mean(axis=0).max()
     M_env2 = np.array(season2).mean(axis=0).max()
     diffs = (vari_env2 - M_special, vari_env2 - M_env2)
