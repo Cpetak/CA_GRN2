@@ -17,6 +17,7 @@ from collections import defaultdict
 #import networkx as nx
 from matplotlib.patches import Circle
 from scipy.stats import ttest_ind
+from scipy.stats import mannwhitneyu
 
 ALPHA = 10
 
@@ -587,12 +588,19 @@ def get_fits(rules, seed_ints, metric, root, season_len, num_reps, id_start, ext
 
     return vari_maxs, env1_maxs, env2_maxs
 
+def get_fits_dr(rules, seed_int, metric, root_var, root_stat, season_len, num_reps, id_start, extrapolate=True):
+    vari_maxs=[np.loadtxt(os.path.expanduser(root_var+f"stats_{season_len}_{rules[0]}-{rules[1]}_{seed_int}-{seed_int}_{i+1+id_start}_{metric}.txt")) for i in range(num_reps)]
+    env1_maxs=[np.loadtxt(os.path.expanduser(root_stat+f"static/stats_100000_{rules[0]}_{seed_int}_{i+1+id_start}_{metric}.txt")) for i in range(num_reps)]
+    env2_maxs=[np.loadtxt(os.path.expanduser(root_stat+f"static/stats_100000_{rules[1]}_{seed_int}_{i+1+id_start}_{metric}.txt")) for i in range(num_reps)]
+
+    return vari_maxs, env1_maxs, env2_maxs
+
 def get_fits_alt(rules, seed_ints, metric, root, season_len, num_reps, exp_type):
     vari_maxs=[np.loadtxt(os.path.expanduser(root+f"variable/stats_{season_len}_{rules[0]}-{rules[1]}_{seed_ints[0]}-{seed_ints[1]}_{i+1}_{metric}.txt")) for i in range(num_reps)]
     
     static_maxs=[np.loadtxt(os.path.expanduser(root+f"static/stats_100000_{rules[0]}_{149796}_{i+1}_{metric}.txt")) for i in range(num_reps)]
         
-    special_maxs=[np.loadtxt(os.path.expanduser(root+f"{exp_type}/stats_{season_len}_{rules[0]}-{rules[1]}_{149796}-{149796}_{i+1}_{metric}.txt")) for i in range(num_reps)]
+    special_maxs=[np.loadtxt(os.path.expanduser(root+f"{exp_type}/stats_{season_len}_{rules[0]}-{rules[1]}_{149796}-{149796}_{i+1}_{metric}.txt")) for i in range(5)]
 
     return vari_maxs, static_maxs, special_maxs    
 
@@ -646,8 +654,10 @@ def scatter_value(variable, season1, season2, season_len):
     cohen_d1 = (vari_env1- M_env1) / np.sqrt((std1+env1_std)/2)
     cohen_d2 = (vari_env2- M_env2) / np.sqrt((std2+env2_std)/2)
 
-    t_stat1, p_value1 = ttest_ind(list1, static1)
-    t_stat2, p_value2 = ttest_ind(list2, static2)
+    #t_stat1, p_value1 = ttest_ind(list1, static1)
+    #t_stat2, p_value2 = ttest_ind(list2, static2)
+    t_stat1, p_value1 = mannwhitneyu(list1, static1, alternative='two-sided')
+    t_stat2, p_value2 = mannwhitneyu(list2, static2, alternative='two-sided')
 
 
     diffs = (vari_env1 - M_env1, vari_env2 - M_env2)
@@ -670,7 +680,8 @@ def scatter_value_alt_specfocus(variable, special, season2, season_len):
     M_special = np.array(special).mean(axis=0).max()
     M_env2 = np.array(season2).mean(axis=0).max()
     #diffs = (vari_env2 - M_special, vari_env2 - M_env2)
-    diffs = (M_special - vari_env2, M_special - M_env2)
+    #diffs = (M_special - vari_env2, M_special - M_env2)
+    diffs = (M_env2 - vari_env2, M_env2 - M_special)
     return diffs
 
 def scatter_value_alt_varifocus(variable, special, season2, season_len):

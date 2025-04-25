@@ -100,8 +100,8 @@ if __name__ == "__main__":
     else:
         args.season_len = 100_000
 
-    root="~/scratch/detailed_save/"
-    dir_path = Path(f"~/scratch/detailed_save/{args.exp_type}/").expanduser()
+    root="~/CA_GRN_results/detailed_save/"
+    dir_path = Path(f"~/CA_GRN_results/detailed_save/{args.exp_type}/").expanduser()
 
     files = [file for file in dir_path.iterdir() if file.is_file() and file.name.startswith(f"stats_{args.season_len}_{args.rule}") and file.name.endswith("_best_grn.txt")]
 
@@ -109,10 +109,14 @@ if __name__ == "__main__":
     N = 1 #number of noise levels to test
     nrows = 50 #x**2 is number of clones
 
-    out_filename1 = os.path.expanduser(f"{root}/noise_results/testing/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env1_unsorted_noise_data.jsonl")
-    out_filename2 = os.path.expanduser(f"{root}/noise_results/testing/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_env2_unsorted_noise_data.jsonl")
+    #out_filename1 = os.path.expanduser(f"{root}/noise_results/testing/stats_{args.rule}_{args.exp_type}2_{args.candidate_idx}_env1_unsorted_noise_data.jsonl")
+    #out_filename2 = os.path.expanduser(f"{root}/noise_results/testing/stats_{args.rule}_{args.exp_type}2_{args.candidate_idx}_env2_unsorted_noise_data.jsonl")
 
-    df_outfilename = os.path.expanduser(f"{root}/noise_results/testing/stats_{args.rule}_{args.exp_type}_{args.candidate_idx}_pheno_data.csv")
+    out_filename1 = os.path.expanduser(f"~/scratch/testing_noisy/stats_{args.rule}_{args.exp_type}2_{args.candidate_idx}_env1_unsorted_noise_data.jsonl")
+    out_filename2 = os.path.expanduser(f"~/scratch/testing_noisy/stats_{args.rule}_{args.exp_type}2_{args.candidate_idx}_env2_unsorted_noise_data.jsonl")
+
+
+    df_outfilename = os.path.expanduser(f"~/scratch/testing_noisy/stats_{args.rule}_{args.exp_type}2_{args.candidate_idx}_pheno_data.csv")
 
     log1 = JSONLogger(out_filename1)
     log2 = JSONLogger(out_filename2)
@@ -121,7 +125,7 @@ if __name__ == "__main__":
 
     for filename in tqdm(files, position=0):
         print(filename)
-        if "69904" in filename.name:
+        if "149796" in filename.name:
             print(filename)
             params = GRNFilenameParser.parse(filename)
             data1 = []

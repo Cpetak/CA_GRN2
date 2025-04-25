@@ -17,7 +17,7 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   seeds=[]
   inputs=[]
 
-  random_seed = True
+  random_seed = False
   #seed_ints = [0,1] #index of input in the 100 inputs file
   print(seed_ints)
 
@@ -53,6 +53,8 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
   #Logging
   max_fits = []
   ave_fits = []
+  all_pheno_stds = []
+  pheno_stds = []
   
   saveat = list(range(num_generations))
 
@@ -81,6 +83,20 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     #get second gene for each cell only, the one I decided will matter for the fitness
     #pop_size, dev_steps, NCxNG
     p=phenos[:,:,1::grn_size]
+
+    # Logging phenotypic variation
+    if gen > 0:
+      #across pop
+      all_pheno_std=np.std(p, axis=0)
+      all_pheno_std = all_pheno_std.mean()
+      all_pheno_stds.append(all_pheno_std)
+
+      #kids of same parent
+      child_phenotypes = p[children_locs] 
+      reshaped=np.reshape(child_phenotypes, (num_child, len(parent_locs), (dev_steps+1)*num_cells))
+      pheno_std=np.std(reshaped,axis=0) #one std for each of the parents, so pop_size*trunc_prop now 10
+      pheno_std = pheno_std.mean(1).mean()
+      pheno_stds.append(pheno_std)
 
     #Calculating fitnesses
     fitnesses = []
@@ -128,6 +144,10 @@ def evolutionary_algorithm(pop_size, grn_size, num_cells, dev_steps, mut_rate, n
     np.savetxt(f, max_fits, newline=" ")
   with open(filename+"_avefits.txt", 'w') as f:
     np.savetxt(f, ave_fits, newline=" ")
+  with open(filename+"_all_pheno_stds.txt", 'w') as f:
+    np.savetxt(f, all_pheno_stds, newline=" ")
+  with open(filename+"_pheno_stds.txt", 'w') as f:
+    np.savetxt(f, pheno_stds, newline=" ")
 
   return max_fit
 
@@ -142,7 +162,7 @@ if __name__ == "__main__":
   parser.add_argument('--selection_prop', type=float, default=0.1, help="Percent pruncation") 
   parser.add_argument('--mut_rate', type=float, default=0.1, help="Number of mutations") 
   parser.add_argument('--mut_size', type=float, default=0.5, help="Size of mutations") 
-  parser.add_argument('--num_generations', type=int, default=9899, help="Number of generations") #19799
+  parser.add_argument('--num_generations', type=int, default=30_000, help="Number of generations") #9899
   parser.add_argument('--season_len', type=int, default=300, help="season length")
 
   parser.add_argument('--seed_ints', nargs='+', default=[4147842,1238860], help='List of seeds in base 10')
@@ -157,7 +177,7 @@ if __name__ == "__main__":
   #to_seed = lambda n, N : np.array(list(map(int, format(n, f"0{N}b"))))
 
   #Writing to file
-  folder_name = Path("~/scratch/non_detailed_save/extra_inputs/static").expanduser()
+  folder_name = Path("~/scratch/non_detailed_save/full_pheno_std_long").expanduser()
   #folder = helper.prepare_run(folder_name)
   args.folder = folder_name
 

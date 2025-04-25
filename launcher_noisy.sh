@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #Specify a partition
-#SBATCH --partition=bluemoon
+#SBATCH --partition=general
 # Request nodes
 #SBATCH --nodes=1
 # Request some processor cores
